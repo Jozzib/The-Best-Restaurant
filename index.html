@@ -1,251 +1,327 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="overflow-x-hidden">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Best Restaurant | Delicious Local Meals</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>The Best Restaurant | Order Online</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Supabase JS Library -->
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- FontAwesome Icons -->
+  <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <style>
-    /* Hide scrollbar for Chrome, Safari and Opera */
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    /* Hide scrollbar for IE, Edge and Firefox */
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  </style>
 </head>
-<body class="bg-gray-100 text-gray-900 font-sans min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col overflow-x-hidden w-full max-w-full">
 
-  <!-- Top Announcement Bar -->
-  <div class="bg-red-900 text-white text-xs py-1.5 px-4 text-center font-medium">
-    🚀 Fast Delivery within 30-45 minutes! Call: +234 800 000 0000
-  </div>
-
-  <!-- Header -->
-  <header class="bg-white text-gray-800 shadow-sm sticky top-0 z-40 border-b border-gray-100">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+  <!-- Navigation Bar -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 w-full">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex justify-between items-center">
       <!-- Logo -->
-      <div class="flex items-center space-x-3 cursor-pointer">
-        <div class="w-10 h-10 bg-red-700 rounded-full flex items-center justify-center text-white font-black text-xl shadow">
-          B
-        </div>
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-red-700 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-md shadow-red-700/20">B</div>
         <div>
-          <h1 class="text-xl font-extrabold tracking-tight text-red-700 leading-none">The Best</h1>
-          <span class="text-xs uppercase tracking-widest text-gray-500 font-bold">Restaurant</span>
+          <h1 class="text-slate-900 font-black text-lg sm:text-xl leading-none">The Best</h1>
+          <span class="text-xs text-red-700 font-bold uppercase tracking-widest">Restaurant</span>
         </div>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="flex items-center space-x-3">
-        <button id="cartBtn" class="bg-red-700 hover:bg-red-800 text-white text-sm font-bold px-4 py-2 rounded-full flex items-center space-x-2 transition shadow">
-          <i class="fa-solid fa-bag-shopping"></i>
-          <span>My Cart</span>
-          <span id="cartCount" class="bg-white text-red-700 text-xs font-black px-2 py-0.5 rounded-full">0</span>
-        </button>
-      </div>
+      <!-- Cart Button Header -->
+      <button onclick="toggleCartDrawer(true)" class="relative bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2">
+        <i class="fa-solid fa-basket-shopping"></i>
+        <span class="hidden sm:inline">My Order</span>
+        <span id="cartBadge" class="bg-red-700 text-white text-xs font-black px-2 py-0.5 rounded-full">0</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="bg-slate-900 text-white py-10 px-4 sm:px-6 relative overflow-hidden">
+    <div class="max-w-7xl mx-auto relative z-10 text-center sm:text-left">
+      <span class="bg-red-700/30 text-red-400 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-red-500/30 inline-block mb-3">Fresh & Hot Delivery</span>
+      <h2 class="text-2xl sm:text-4xl font-black mb-2 leading-tight">Delicious Meals Delivered Fast to Your Door</h2>
+      <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Choose from our freshly prepared signature dishes. Select your favorites, order online, and get instant updates.</p>
     </div>
   </header>
 
-  <!-- NEW HERO SECTION WITH CLEAR FOOD BACKGROUND PICTURE -->
-  <section class="relative bg-cover bg-center bg-no-repeat min-h-[480px] md:min-h-[550px] flex items-center justify-center text-white text-center px-4" 
-           style="background-image: url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1600&auto=format&fit=crop');">
+  <!-- Main Content Container -->
+  <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 flex-1">
     
-    <!-- Subtle Overlay Gradient (Makes text readable without dimming image quality) -->
-    <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/60"></div>
-
-    <!-- Hero Content -->
-    <div class="relative z-10 max-w-3xl mx-auto space-y-5 px-4 py-10">
-      <span class="inline-block bg-yellow-400 text-red-950 text-xs md:text-sm uppercase tracking-widest font-black px-4 py-1.5 rounded-full shadow-lg">
-        🔥 Freshly Prepared Daily
-      </span>
-      
-      <h2 class="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-tight text-white drop-shadow-md">
-        Delicious Local Meals Delivered Fast
-      </h2>
-      
-      <p class="text-sm sm:text-base md:text-lg text-gray-200 max-w-xl mx-auto font-normal leading-relaxed">
-        Authentic African & Continental Dishes made with fresh ingredients and delivered piping hot to your doorstep!
-      </p>
-
-      <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-        <a href="#menuGrid" class="w-full sm:w-auto bg-red-700 hover:bg-red-800 text-white font-bold text-base px-8 py-3.5 rounded-xl transition transform hover:scale-105 shadow-xl">
-          Order Now 🍲
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Main Food Ordering Section -->
-  <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
-    <!-- Category Tabs Navigation -->
-    <div class="mb-8">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Explore Menu</h3>
-      <div id="categoryContainer" class="flex overflow-x-auto gap-2 pb-2 no-scrollbar">
-        <button class="bg-red-700 text-white font-semibold px-5 py-2 rounded-lg text-sm transition shadow-sm active-category" onclick="filterCategory('all')">All Items</button>
-        <!-- Categories load here -->
+    <!-- Category Filter Buttons -->
+    <div class="flex items-center space-x-2 overflow-x-auto pb-4 mb-6 scrollbar-none max-w-full">
+      <button onclick="filterCategory('all')" class="category-btn active bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow-sm transition">
+        All Meals
+      </button>
+      <div id="categoryContainer" class="flex items-center space-x-2">
+        <!-- Dynamic Categories Load Here -->
       </div>
     </div>
 
-    <!-- Food Cards Grid -->
-    <div id="menuGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      <p class="text-gray-400 col-span-full text-center py-10">Loading delicious menu...</p>
+    <!-- Menu Items Grid -->
+    <div id="menuGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div class="col-span-full text-center py-16 text-slate-400 font-medium">
+        <i class="fa-solid fa-spinner fa-spin text-2xl text-red-700 mb-2"></i>
+        <p>Fetching menu items...</p>
+      </div>
     </div>
   </main>
 
-  <!-- Footer -->
-  <footer class="bg-gray-900 text-gray-400 py-8 text-center text-sm border-t border-gray-800">
-    <div class="max-w-6xl mx-auto px-4">
-      <p class="font-semibold text-white mb-1">The Best Restaurant</p>
-      <p class="text-xs text-gray-500 mb-4">Quality food, fast delivery, and unmatched taste.</p>
-      <p class="text-xs">© 2026 The Best Restaurant. All Rights Reserved.</p>
-    </div>
-  </footer>
-
-  <!-- Slide-out Shopping Cart Drawer -->
-  <div id="cartDrawer" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex justify-end transition-opacity">
-    <div class="bg-white w-full max-w-md h-full flex flex-col justify-between p-6 shadow-2xl overflow-y-auto">
-      <div>
-        <div class="flex justify-between items-center border-b pb-4 mb-4">
-          <h3 class="text-lg font-bold text-gray-900 flex items-center space-x-2">
-            <i class="fa-solid fa-bag-shopping text-red-700"></i>
-            <span>Your Order</span>
-          </h3>
-          <button id="closeCartBtn" class="text-gray-400 hover:text-red-600 text-2xl font-bold">&times;</button>
+  <!-- Cart Slide-over Drawer -->
+  <div id="cartDrawer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-end">
+    <div class="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-200">
+      
+      <!-- Drawer Header -->
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-basket-shopping text-red-700"></i>
+          <h3 class="font-bold text-slate-900 text-base">Your Cart</h3>
         </div>
-        <div id="cartItems" class="space-y-4">
-          <p class="text-gray-500 text-center py-6">Your cart is empty.</p>
-        </div>
+        <button onclick="toggleCartDrawer(false)" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
       </div>
 
-      <div id="cartFooter" class="border-t pt-4 mt-6 hidden">
-        <div class="flex justify-between font-bold text-lg mb-4 text-gray-900">
-          <span>Total Amount:</span>
-          <span id="cartTotal" class="text-red-700 font-black">₦0</span>
+      <!-- Cart Items List -->
+      <div id="cartItemsList" class="p-4 sm:p-5 flex-1 overflow-y-auto space-y-4">
+        <p class="text-slate-400 text-center py-12 text-sm">Your cart is empty.</p>
+      </div>
+
+      <!-- Checkout Footer -->
+      <div class="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 space-y-4">
+        <div class="flex justify-between items-center text-sm font-bold">
+          <span class="text-slate-600">Total Amount:</span>
+          <span id="cartTotal" class="text-xl font-black text-red-700">₦0</span>
         </div>
-        
-        <!-- Delivery Details Form -->
-        <form id="checkoutForm" class="space-y-3">
+
+        <!-- Checkout Form -->
+        <form id="checkoutForm" onsubmit="handleCheckout(event)" class="space-y-3">
           <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Full Name</label>
-            <input type="text" id="custName" placeholder="e.g. John Doe" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-600 outline-none" />
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Your Full Name</label>
+            <input type="text" id="custName" required placeholder="e.g. John Doe" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-600 bg-white" />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Phone Number</label>
-            <input type="tel" id="custPhone" placeholder="e.g. 08012345678" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-600 outline-none" />
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Phone Number</label>
+            <input type="tel" id="custPhone" required placeholder="e.g. 08012345678" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-600 bg-white" />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Delivery Address</label>
-            <textarea id="custAddress" placeholder="Street address, building, floor..." required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-600 outline-none" rows="2"></textarea>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Delivery Address</label>
+            <textarea id="custAddress" required rows="2" placeholder="House no, Street address, Area..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-600 bg-white"></textarea>
           </div>
-          <button type="submit" class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded-lg shadow-lg transition">
-            Confirm & Place Order
+
+          <button type="submit" id="submitOrderBtn" class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded-xl shadow-lg shadow-red-700/20 text-sm transition flex items-center justify-center gap-2">
+            <span>Place Order</span>
+            <i class="fa-solid fa-arrow-right"></i>
           </button>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- Customization Modal for Swallows & Soups -->
-  <div id="customizeModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
-      <!-- Modal Header -->
-      <div class="p-4 border-b flex justify-between items-center bg-gray-50">
-        <div>
-          <h3 id="modalMealTitle" class="font-bold text-lg text-gray-900">Customize Your Plate</h3>
-          <p id="modalMealBasePrice" class="text-xs text-red-700 font-bold"></p>
-        </div>
-        <button onclick="closeCustomizeModal()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
-      </div>
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
+    <p>&copy; 2026 The Best Restaurant. All rights reserved.</p>
+  </footer>
 
-      <!-- Modal Body (Scrollable) -->
-      <div class="p-5 space-y-5 overflow-y-auto flex-1">
-        
-        <!-- 1. Select Swallow -->
-        <div>
-          <label class="block font-bold text-sm text-gray-800 mb-2">1. Choose Your Swallow <span class="text-red-500">*</span></label>
-          <select id="selectSwallow" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white font-medium focus:ring-2 focus:ring-red-600 outline-none">
-            <option value="Pounded Yam">Pounded Yam</option>
-            <option value="Amala">Amala</option>
-            <option value="Eba (Garri)">Eba (Garri)</option>
-            <option value="Semo">Semo</option>
-            <option value="Wheat">Wheat</option>
-          </select>
-        </div>
+  <script>
+    const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        <!-- 2. Select Soup -->
-        <div>
-          <label class="block font-bold text-sm text-gray-800 mb-2">2. Choose Your Soup <span class="text-red-500">*</span></label>
-          <select id="selectSoup" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white font-medium focus:ring-2 focus:ring-red-600 outline-none">
-            <option value="Egusi Soup">Egusi Soup</option>
-            <option value="Efo Riro">Efo Riro (Spinach)</option>
-            <option value="Ogbono Soup">Ogbono Soup</option>
-            <option value="Ewedu & Gbegiri">Ewedu & Gbegiri</option>
-            <option value="Okra Soup">Okra Soup</option>
-          </select>
-        </div>
+    let allMenuItems = [];
+    let cart = JSON.parse(localStorage.getItem('restaurant_cart')) || [];
 
-        <hr class="border-gray-100" />
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchCategories();
+      fetchMenuItems();
+      renderCart();
+    });
 
-        <!-- 3. Protein/Meat Selection -->
-        <div>
-          <label class="block font-bold text-sm text-gray-800 mb-1">3. Select Protein / Meat Type</label>
-          <select id="selectMeatType" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white font-medium focus:ring-2 focus:ring-red-600 outline-none mb-3">
-            <option value="Goat Meat" data-price="1000">Goat Meat (+₦1,000 / pc)</option>
-            <option value="Assorted Meat" data-price="800">Assorted Meat (+₦800 / pc)</option>
-            <option value="Fried Beef" data-price="700">Fried Beef (+₦700 / pc)</option>
-            <option value="Fried Chicken" data-price="1200">Fried Chicken (+₦1,200 / pc)</option>
-            <option value="Fried Fish" data-price="900">Fried Fish (+₦900 / pc)</option>
-          </select>
-
-          <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-200">
-            <span class="text-xs font-bold text-gray-700">Meat Quantity (Pieces):</span>
-            <div class="flex items-center space-x-3">
-              <button onclick="adjustModalQty('meat', -1)" type="button" class="w-8 h-8 bg-white border rounded-lg font-bold text-gray-700 hover:bg-gray-100">-</button>
-              <span id="modalMeatQty" class="font-bold text-sm min-w-[20px] text-center">1</span>
-              <button onclick="adjustModalQty('meat', 1)" type="button" class="w-8 h-8 bg-white border rounded-lg font-bold text-gray-700 hover:bg-gray-100">+</button>
-            </div>
-          </div>
-        </div>
-
-        <hr class="border-gray-100" />
-
-        <!-- 4. Extra Swallow Wraps -->
-        <div>
-          <label class="block font-bold text-sm text-gray-800 mb-1">4. Extra Swallow Wrap (+₦500 / wrap)</label>
-          <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-200">
-            <select id="selectExtraSwallowType" class="border border-gray-300 rounded-lg p-1.5 text-xs bg-white font-medium">
-              <option value="Extra Pounded Yam">Extra Pounded Yam</option>
-              <option value="Extra Amala">Extra Amala</option>
-              <option value="Extra Eba">Extra Eba</option>
-              <option value="Extra Semo">Extra Semo</option>
-            </select>
-            
-            <div class="flex items-center space-x-3">
-              <button onclick="adjustModalQty('extraSwallow', -1)" type="button" class="w-8 h-8 bg-white border rounded-lg font-bold text-gray-700 hover:bg-gray-100">-</button>
-              <span id="modalExtraSwallowQty" class="font-bold text-sm min-w-[20px] text-center">0</span>
-              <button onclick="adjustModalQty('extraSwallow', 1)" type="button" class="w-8 h-8 bg-white border rounded-lg font-bold text-gray-700 hover:bg-gray-100">+</button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="p-4 border-t bg-gray-50 flex justify-between items-center">
-        <div>
-          <div class="text-xs text-gray-500">Total Price:</div>
-          <div id="modalCalculatedTotal" class="text-xl font-black text-red-700">₦0</div>
-        </div>
-        <button id="modalAddToCartBtn" class="bg-red-700 hover:bg-red-800 text-white font-bold px-6 py-2.5 rounded-xl shadow transition">
-          Add Customized Meal
+    async function fetchCategories() {
+      const { data, error } = await supabaseClient.from('categories').select('*');
+      if (error) return console.error('Categories load error:', error);
+      
+      const container = document.getElementById('categoryContainer');
+      container.innerHTML = (data || []).map(cat => `
+        <button onclick="filterCategory('${cat.id}')" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
+          ${cat.name}
         </button>
-      </div>
-    </div>
-  </div>
+      `).join('');
+    }
 
-  <script src="app.js"></script>
+    async function fetchMenuItems() {
+      const { data, error } = await supabaseClient.from('menu_items').select('*').order('name');
+      if (error) {
+        document.getElementById('menuGrid').innerHTML = `<p class="col-span-full text-center text-red-600 text-sm">Failed to load menu items.</p>`;
+        return;
+      }
+
+      allMenuItems = data || [];
+      renderMenuItems(allMenuItems);
+    }
+
+    function renderMenuItems(items) {
+      const grid = document.getElementById('menuGrid');
+      if (items.length === 0) {
+        grid.innerHTML = `<p class="col-span-full text-center text-slate-400 text-sm py-12">No menu items found.</p>`;
+        return;
+      }
+
+      grid.innerHTML = items.map(item => `
+        <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between">
+          <div>
+            <div class="relative h-44 w-full bg-slate-100 overflow-hidden">
+              <img src="${item.image_url || 'https://via.placeholder.com/300'}" alt="${item.name}" class="w-full h-full object-cover">
+              ${!item.is_available ? '<div class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center text-white text-xs font-bold uppercase tracking-wider">Out of Stock</div>' : ''}
+            </div>
+            <div class="p-4">
+              <h3 class="font-bold text-slate-900 text-sm mb-1">${item.name}</h3>
+              <p class="text-xs text-slate-500 line-clamp-2 mb-3">${item.description || 'Freshly prepared specialty dish.'}</p>
+            </div>
+          </div>
+          <div class="p-4 pt-0 flex items-center justify-between border-t border-slate-50 mt-auto">
+            <span class="font-black text-red-700 text-base">₦${Number(item.price).toLocaleString()}</span>
+            <button onclick="addToCart('${item.id}')" ${!item.is_available ? 'disabled' : ''} class="bg-red-700 hover:bg-red-800 disabled:bg-slate-300 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-plus"></i> Add
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterCategory(catId) {
+      const buttons = document.querySelectorAll('.category-btn');
+      buttons.forEach(b => {
+        b.className = 'category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition';
+      });
+      event.target.className = 'category-btn active bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow-sm transition';
+
+      if (catId === 'all') {
+        renderMenuItems(allMenuItems);
+      } else {
+        renderMenuItems(allMenuItems.filter(i => i.category_id === catId));
+      }
+    }
+
+    function addToCart(itemId) {
+      const item = allMenuItems.find(i => i.id === itemId);
+      if (!item) return;
+
+      const existing = cart.find(c => c.id === itemId);
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        cart.push({ id: item.id, name: item.name, price: Number(item.price), quantity: 1 });
+      }
+
+      saveCart();
+      toggleCartDrawer(true);
+    }
+
+    function updateCartQty(itemId, delta) {
+      const idx = cart.findIndex(c => c.id === itemId);
+      if (idx > -1) {
+        cart[idx].quantity += delta;
+        if (cart[idx].quantity <= 0) {
+          cart.splice(idx, 1);
+        }
+      }
+      saveCart();
+    }
+
+    function saveCart() {
+      localStorage.setItem('restaurant_cart', JSON.stringify(cart));
+      renderCart();
+    }
+
+    function renderCart() {
+      const cartBadge = document.getElementById('cartBadge');
+      const cartItemsList = document.getElementById('cartItemsList');
+      const cartTotal = document.getElementById('cartTotal');
+
+      const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
+      const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      cartBadge.innerText = totalQty;
+      cartTotal.innerText = `₦${totalPrice.toLocaleString()}`;
+
+      if (cart.length === 0) {
+        cartItemsList.innerHTML = `<p class="text-slate-400 text-center py-12 text-sm">Your cart is empty.</p>`;
+        return;
+      }
+
+      cartItemsList.innerHTML = cart.map(item => `
+        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+          <div class="flex-1 min-w-0 mr-3">
+            <h4 class="font-bold text-slate-800 text-xs truncate">${item.name}</h4>
+            <span class="text-xs font-semibold text-red-700">₦${item.price.toLocaleString()}</span>
+          </div>
+          <div class="flex items-center space-x-2 bg-white px-2 py-1 rounded-lg border border-slate-200">
+            <button onclick="updateCartQty('${item.id}', -1)" class="text-slate-500 hover:text-red-700 text-xs font-bold px-1.5">&minus;</button>
+            <span class="text-xs font-bold text-slate-800">${item.quantity}</span>
+            <button onclick="updateCartQty('${item.id}', 1)" class="text-slate-500 hover:text-red-700 text-xs font-bold px-1.5">&plus;</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function toggleCartDrawer(open) {
+      document.getElementById('cartDrawer').classList.toggle('hidden', !open);
+    }
+
+    async function handleCheckout(e) {
+      e.preventDefault();
+      if (cart.length === 0) return alert('Your cart is empty!');
+
+      const submitBtn = document.getElementById('submitOrderBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Submitting...`;
+
+      const customer_name = document.getElementById('custName').value;
+      const customer_phone = document.getElementById('custPhone').value;
+      const delivery_address = document.getElementById('custAddress').value;
+      const total_amount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      // 1. Create main order row
+      const { data: orderData, error: orderErr } = await supabaseClient
+        .from('orders')
+        .insert([{
+          customer_name,
+          customer_phone,
+          delivery_address,
+          total_amount,
+          status: 'pending'
+        }])
+        .select()
+        .single();
+
+      if (orderErr) {
+        alert('Failed to submit order. Please try again.');
+        console.error(orderErr);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>Place Order</span><i class="fa-solid fa-arrow-right"></i>`;
+        return;
+      }
+
+      // 2. Insert individual order line items
+      const orderItems = cart.map(item => ({
+        order_id: orderData.id,
+        menu_item_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price
+      }));
+
+      const { error: itemsErr } = await supabaseClient.from('order_items').insert(orderItems);
+
+      if (itemsErr) {
+        console.error('Order line items insert error:', itemsErr);
+      }
+
+      alert('🎉 Order placed successfully! The kitchen is preparing your meal.');
+      cart = [];
+      saveCart();
+      document.getElementById('checkoutForm').reset();
+      toggleCartDrawer(false);
+
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>Place Order</span><i class="fa-solid fa-arrow-right"></i>`;
+    }
+  </script>
 </body>
 </html>
