@@ -165,7 +165,7 @@
       <form id="addDishForm" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Dish Name</label>
-          <input type="text" id="dishName" required placeholder="e.g. Soup & Swallow Combo" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
+          <input type="text" id="dishName" required placeholder="e.g. Egusi Soup" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Category</label>
@@ -175,7 +175,7 @@
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Price (₦)</label>
-          <input type="number" id="dishPrice" required placeholder="3500" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
+          <input type="number" id="dishPrice" required placeholder="2000" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Image URL</label>
@@ -192,26 +192,9 @@
     </div>
   </div>
 
-  <!-- Modal: Monthly Sales Detail Drawer -->
-  <div id="monthlyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-5 md:p-6 max-h-[85vh] flex flex-col">
-      <div class="flex justify-between items-center border-b pb-3 mb-4">
-        <div>
-          <h3 id="monthlyModalTitle" class="text-lg font-bold text-slate-900">Monthly Sales Details</h3>
-          <p id="monthlyModalSubtitle" class="text-xs text-slate-500"></p>
-        </div>
-        <button onclick="toggleMonthlyModal(false)" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
-      </div>
-
-      <div id="monthlyModalContent" class="flex-1 overflow-y-auto space-y-3 pr-1">
-        <!-- Monthly details load here -->
-      </div>
-    </div>
-  </div>
-
   <script>
     const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6Ji0xMTk2MTk3fQ.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let categories = [];
@@ -343,7 +326,6 @@
 
       allOrdersStore = orders || [];
 
-      // Calculate Daily Revenue (Today's Date Only)
       const todayString = new Date().toISOString().split('T')[0];
       const todayOrders = allOrdersStore.filter(o => o.created_at && o.created_at.startsWith(todayString));
       const dailyRevenue = todayOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
@@ -361,7 +343,6 @@
       }
 
       renderLiveOrdersTable(allOrdersStore);
-      renderMonthlySalesArchives(allOrdersStore);
     }
 
     function renderLiveOrdersTable(orders) {
@@ -375,7 +356,7 @@
         const itemsListHtml = o.order_items && o.order_items.length > 0
           ? o.order_items.map(i => `
               <div class="text-xs text-slate-700 font-medium">
-                <span class="font-bold text-red-700">${i.quantity}x</span> ${i.menu_items ? i.menu_items.name : 'Meal'}
+                <span class="font-bold text-red-700">${i.quantity}x</span> ${i.menu_items ? i.menu_items.name : 'Meal Item'}
               </div>
             `).join('')
           : '<span class="text-xs text-slate-400">No item details</span>';
@@ -413,94 +394,6 @@
           </tr>
         `;
       }).join('');
-    }
-
-    function renderMonthlySalesArchives(orders) {
-      const monthlyContainer = document.getElementById('monthlyGrid');
-      
-      const monthGroups = {};
-
-      orders.forEach(o => {
-        if (!o.created_at) return;
-        const dateObj = new Date(o.created_at);
-        const yearMonthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-        
-        if (!monthGroups[yearMonthKey]) {
-          monthGroups[yearMonthKey] = {
-            key: yearMonthKey,
-            label: dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-            totalRevenue: 0,
-            orderCount: 0,
-            orders: []
-          };
-        }
-
-        monthGroups[yearMonthKey].totalRevenue += Number(o.total_amount || 0);
-        monthGroups[yearMonthKey].orderCount += 1;
-        monthGroups[yearMonthKey].orders.push(o);
-      });
-
-      const keys = Object.keys(monthGroups).sort().reverse();
-
-      if (keys.length === 0) {
-        monthlyContainer.innerHTML = `<p class="text-slate-400 text-xs col-span-full py-4">No monthly records accumulated yet.</p>`;
-        return;
-      }
-
-      monthlyContainer.innerHTML = keys.map(k => {
-        const group = monthGroups[k];
-        return `
-          <div onclick="openMonthlyDetails('${k}')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-red-600 cursor-pointer transition flex items-center justify-between group">
-            <div>
-              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">${group.label}</span>
-              <div class="text-lg font-black text-slate-900 mt-0.5">₦${group.totalRevenue.toLocaleString()}</div>
-              <span class="text-xs text-slate-500">${group.orderCount} total orders</span>
-            </div>
-            <div class="w-9 h-9 rounded-full bg-slate-100 group-hover:bg-red-700 group-hover:text-white text-slate-500 flex items-center justify-center transition">
-              <i class="fa-solid fa-chevron-right text-xs"></i>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function openMonthlyDetails(monthKey) {
-      const filtered = allOrdersStore.filter(o => {
-        if (!o.created_at) return false;
-        const d = new Date(o.created_at);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        return key === monthKey;
-      });
-
-      const sampleDate = new Date(filtered[0].created_at);
-      const monthLabel = sampleDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      const monthTotal = filtered.reduce((s, o) => s + Number(o.total_amount || 0), 0);
-
-      document.getElementById('monthlyModalTitle').innerText = `${monthLabel} Sales Report`;
-      document.getElementById('monthlyModalSubtitle').innerText = `Total Revenue: ₦${monthTotal.toLocaleString()} | Total Orders: ${filtered.length}`;
-
-      const content = document.getElementById('monthlyModalContent');
-      content.innerHTML = filtered.map(o => `
-        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex justify-between items-start text-xs">
-          <div>
-            <div class="font-bold text-slate-900">${o.customer_name} <span class="text-slate-400 font-normal">(${new Date(o.created_at).toLocaleDateString()})</span></div>
-            <div class="text-slate-500 mt-1">${o.delivery_address}</div>
-            <div class="text-red-700 font-semibold mt-1">
-              ${(o.order_items || []).map(i => `${i.quantity}x ${i.menu_items ? i.menu_items.name : 'Item'}`).join(', ')}
-            </div>
-          </div>
-          <div class="text-right">
-            <span class="font-black text-slate-900 text-sm block">₦${Number(o.total_amount).toLocaleString()}</span>
-            <span class="uppercase font-bold text-[10px] text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 inline-block mt-1">${o.status}</span>
-          </div>
-        </div>
-      `).join('');
-
-      toggleMonthlyModal(true);
-    }
-
-    function toggleMonthlyModal(open) {
-      document.getElementById('monthlyModal').classList.toggle('hidden', !open);
     }
 
     async function updateStatus(id, newStatus) {
