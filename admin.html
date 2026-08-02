@@ -13,6 +13,11 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex">
 
+  <!-- Audio Element for Continuous Alarm (Loops until silenced or order updated) -->
+  <audio id="alarmSound" loop preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+  </audio>
+
   <!-- Sidebar Navigation -->
   <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between p-4 sticky top-0 h-screen">
     <div>
@@ -56,6 +61,11 @@
         <h2 id="pageTitle" class="text-xl font-bold text-slate-900">Live Orders Dashboard</h2>
       </div>
       <div class="flex items-center space-x-3">
+        <!-- Silence Alarm Control Button -->
+        <button id="silenceAlarmBtn" onclick="stopAlarm()" class="hidden bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition items-center gap-2 animate-bounce">
+          <i class="fa-solid fa-bell-slash"></i> Silence Alarm
+        </button>
+        
         <button onclick="refreshData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-2">
           <i class="fa-solid fa-rotate-right"></i> Refresh
         </button>
@@ -166,12 +176,21 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let categories = [];
+    const alarmSound = document.getElementById('alarmSound');
+    const silenceAlarmBtn = document.getElementById('silenceAlarmBtn');
 
     document.addEventListener('DOMContentLoaded', () => {
       fetchOrders();
       fetchCategories();
       fetchMenuForAdmin();
       subscribeToLiveOrders(); // Enable realtime order updates
+
+      // Unlock browser audio permissions on user's first click anywhere on dashboard
+      document.body.addEventListener('click', () => {
+        if (alarmSound) {
+          alarmSound.load();
+        }
+      }, { once: true });
     });
 
     function switchTab(tab) {
@@ -207,15 +226,30 @@
             
             // Re-fetch all orders to display complete items data & update totals
             fetchOrders();
-            playNotificationSound();
+            playAlarm();
           }
         )
         .subscribe();
     }
 
-    function playNotificationSound() {
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(e => console.log('Audio autoplay blocked by browser:', e));
+    // Alarm Sound Control Functions
+    function playAlarm() {
+      if (alarmSound) {
+        alarmSound.currentTime = 0;
+        alarmSound.play().then(() => {
+          silenceAlarmBtn.classList.remove('hidden');
+          silenceAlarmBtn.classList.add('flex');
+        }).catch(e => console.log('Audio play blocked until initial click interaction:', e));
+      }
+    }
+
+    function stopAlarm() {
+      if (alarmSound) {
+        alarmSound.pause();
+        alarmSound.currentTime = 0;
+      }
+      silenceAlarmBtn.classList.add('hidden');
+      silenceAlarmBtn.classList.remove('flex');
     }
 
     async function fetchOrders() {
@@ -245,6 +279,12 @@
       document.getElementById('statPending').innerText = pendingCount;
       document.getElementById('statCompleted').innerText = completedCount;
 
+      // Auto-stop alarm if no pending orders are present
+      const hasUnattendedPending = orders.some(o => o.status === 'pending');
+      if (!hasUnattendedPending) {
+        stopAlarm();
+      }
+
       const tbody = document.getElementById('ordersTableBody');
       if (orders.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No orders received yet.</td></tr>`;
@@ -261,8 +301,10 @@
             `).join('')
           : '<span class="text-xs text-slate-400">No item details</span>';
 
+        const isPending = o.status === 'pending';
+
         return `
-          <tr class="hover:bg-slate-50 border-b border-slate-100 transition">
+          <tr class="hover:bg-slate-50 border-b border-slate-100 transition ${isPending ? 'bg-red-50/50' : ''}">
             <td class="p-4 align-top">
               <div class="font-bold text-slate-900">${o.customer_name}</div>
               <div class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-phone mr-1"></i>${o.customer_phone}</div>
@@ -277,12 +319,12 @@
                 o.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' :
                 o.status === 'preparing' ? 'bg-amber-100 text-amber-800' :
                 o.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-800' :
-                'bg-red-100 text-red-800'
+                'bg-red-100 text-red-800 animate-pulse'
               }">${(o.status || 'pending').replace(/_/g, ' ').toUpperCase()}</span>
             </td>
             <td class="p-4 align-top text-xs text-slate-500">${new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
             <td class="p-4 align-top text-center">
-              <select onchange="updateStatus('${o.id}', this.value)" class="border rounded-lg px-2 py-1 text-xs outline-none bg-white font-medium shadow-sm">
+              <select onchange="updateStatus('${o.id}', this.value)" class="border rounded-lg px-2 py-1 text-xs outline-none bg-white font-medium shadow-sm cursor-pointer hover:border-red-600 transition">
                 <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
                 <option value="preparing" ${o.status === 'preparing' ? 'selected' : ''}>Preparing</option>
                 <option value="out_for_delivery" ${o.status === 'out_for_delivery' ? 'selected' : ''}>Out for Delivery</option>
