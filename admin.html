@@ -13,6 +13,12 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col md:flex-row overflow-x-hidden w-full max-w-full">
 
+  <!-- Audio Activation Banner (Auto-Dismisses On Click) -->
+  <div id="audioEnableBanner" onclick="enableAudioAndDismissBanner()" class="fixed bottom-4 right-4 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 cursor-pointer hover:bg-slate-800 transition border border-slate-700">
+    <i class="fa-solid fa-volume-high text-amber-400 animate-bounce"></i>
+    <span class="text-xs font-semibold">Click anywhere to enable live order sound alerts</span>
+  </div>
+
   <!-- Sidebar Navigation -->
   <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex-none p-4 sticky top-0 z-40">
     <div class="flex items-center justify-between md:block">
@@ -165,7 +171,7 @@
       <form id="addDishForm" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Dish Name</label>
-          <input type="text" id="dishName" required placeholder="e.g. Egusi Soup" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
+          <input type="text" id="dishName" required placeholder="e.g. Soup & Swallow Combo" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Category</label>
@@ -175,7 +181,7 @@
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Price (₦)</label>
-          <input type="number" id="dishPrice" required placeholder="2000" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
+          <input type="number" id="dishPrice" required placeholder="3500" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Image URL</label>
@@ -185,16 +191,33 @@
           <label class="block text-xs font-semibold text-slate-600 mb-1">Description</label>
           <textarea id="dishDesc" rows="2" placeholder="Brief description..." class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600"></textarea>
         </div>
-        <button type="submit" class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-2.5 rounded-lg shadow transition">
+        <button type="submit" id="saveDishBtn" class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-2.5 rounded-lg shadow transition">
           Save Dish to Menu
         </button>
       </form>
     </div>
   </div>
 
+  <!-- Modal: Monthly Sales Detail Drawer -->
+  <div id="monthlyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-5 md:p-6 max-h-[85vh] flex flex-col">
+      <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <div>
+          <h3 id="monthlyModalTitle" class="text-lg font-bold text-slate-900">Monthly Sales Details</h3>
+          <p id="monthlyModalSubtitle" class="text-xs text-slate-500"></p>
+        </div>
+        <button onclick="toggleMonthlyModal(false)" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <div id="monthlyModalContent" class="flex-1 overflow-y-auto space-y-3 pr-1">
+        <!-- Monthly details load here -->
+      </div>
+    </div>
+  </div>
+
   <script>
     const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6Ji0xMTk2MTk3fQ.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let categories = [];
@@ -203,6 +226,17 @@
     
     let audioCtx = null;
     let alarmInterval = null;
+
+    // Helper: Prevent XSS injection
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
 
     function initAudio() {
       if (!audioCtx) {
@@ -213,8 +247,14 @@
       }
     }
 
-    document.addEventListener('click', () => {
+    function enableAudioAndDismissBanner() {
       initAudio();
+      const banner = document.getElementById('audioEnableBanner');
+      if (banner) banner.style.display = 'none';
+    }
+
+    document.addEventListener('click', () => {
+      enableAudioAndDismissBanner();
     }, { once: true });
 
     function playBeepTone() {
@@ -326,6 +366,7 @@
 
       allOrdersStore = orders || [];
 
+      // Calculate Daily Revenue (Today's Date Only)
       const todayString = new Date().toISOString().split('T')[0];
       const todayOrders = allOrdersStore.filter(o => o.created_at && o.created_at.startsWith(todayString));
       const dailyRevenue = todayOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
@@ -343,6 +384,7 @@
       }
 
       renderLiveOrdersTable(allOrdersStore);
+      renderMonthlySalesArchives(allOrdersStore);
     }
 
     function renderLiveOrdersTable(orders) {
@@ -356,7 +398,7 @@
         const itemsListHtml = o.order_items && o.order_items.length > 0
           ? o.order_items.map(i => `
               <div class="text-xs text-slate-700 font-medium">
-                <span class="font-bold text-red-700">${i.quantity}x</span> ${i.menu_items ? i.menu_items.name : 'Meal Item'}
+                <span class="font-bold text-red-700">${i.quantity}x</span> ${escapeHtml(i.menu_items ? i.menu_items.name : 'Meal')}
               </div>
             `).join('')
           : '<span class="text-xs text-slate-400">No item details</span>';
@@ -366,21 +408,21 @@
         return `
           <tr class="hover:bg-slate-50 border-b border-slate-100 transition ${isPending ? 'bg-red-50/50' : ''}">
             <td class="p-3 md:p-4 align-top">
-              <div class="font-bold text-slate-900">${o.customer_name}</div>
-              <div class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-phone mr-1"></i>${o.customer_phone}</div>
+              <div class="font-bold text-slate-900">${escapeHtml(o.customer_name)}</div>
+              <div class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-phone mr-1"></i>${escapeHtml(o.customer_phone)}</div>
             </td>
             <td class="p-3 md:p-4 align-top bg-amber-50/40 rounded-lg">
               <div class="space-y-1">${itemsListHtml}</div>
             </td>
-            <td class="p-3 md:p-4 align-top max-w-xs text-slate-600 text-xs">${o.delivery_address}</td>
-            <td class="p-3 md:p-4 align-top font-black text-red-700">₦${Number(o.total_amount).toLocaleString()}</td>
+            <td class="p-3 md:p-4 align-top max-w-xs text-slate-600 text-xs">${escapeHtml(o.delivery_address)}</td>
+            <td class="p-3 md:p-4 align-top font-black text-red-700">₦${Number(o.total_amount || 0).toLocaleString()}</td>
             <td class="p-3 md:p-4 align-top">
               <span class="px-2.5 py-1 rounded-full text-xs font-bold ${
                 o.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' :
                 o.status === 'preparing' ? 'bg-amber-100 text-amber-800' :
                 o.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-800' :
                 'bg-red-100 text-red-800 animate-pulse'
-              }">${(o.status || 'pending').replace(/_/g, ' ').toUpperCase()}</span>
+              }">${escapeHtml((o.status || 'pending').replace(/_/g, ' ').toUpperCase())}</span>
             </td>
             <td class="p-3 md:p-4 align-top text-xs text-slate-500">${new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
             <td class="p-3 md:p-4 align-top text-center">
@@ -396,21 +438,118 @@
       }).join('');
     }
 
+    function renderMonthlySalesArchives(orders) {
+      const monthlyContainer = document.getElementById('monthlyGrid');
+      const monthGroups = {};
+
+      orders.forEach(o => {
+        if (!o.created_at) return;
+        const dateObj = new Date(o.created_at);
+        const yearMonthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+        
+        if (!monthGroups[yearMonthKey]) {
+          monthGroups[yearMonthKey] = {
+            key: yearMonthKey,
+            label: dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            totalRevenue: 0,
+            orderCount: 0,
+            orders: []
+          };
+        }
+
+        monthGroups[yearMonthKey].totalRevenue += Number(o.total_amount || 0);
+        monthGroups[yearMonthKey].orderCount += 1;
+        monthGroups[yearMonthKey].orders.push(o);
+      });
+
+      const keys = Object.keys(monthGroups).sort().reverse();
+
+      if (keys.length === 0) {
+        monthlyContainer.innerHTML = `<p class="text-slate-400 text-xs col-span-full py-4">No monthly records accumulated yet.</p>`;
+        return;
+      }
+
+      monthlyContainer.innerHTML = keys.map(k => {
+        const group = monthGroups[k];
+        return `
+          <div onclick="openMonthlyDetails('${k}')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-red-600 cursor-pointer transition flex items-center justify-between group">
+            <div>
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">${escapeHtml(group.label)}</span>
+              <div class="text-lg font-black text-slate-900 mt-0.5">₦${group.totalRevenue.toLocaleString()}</div>
+              <span class="text-xs text-slate-500">${group.orderCount} total orders</span>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-slate-100 group-hover:bg-red-700 group-hover:text-white text-slate-500 flex items-center justify-center transition">
+              <i class="fa-solid fa-chevron-right text-xs"></i>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openMonthlyDetails(monthKey) {
+      const filtered = allOrdersStore.filter(o => {
+        if (!o.created_at) return false;
+        const d = new Date(o.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return key === monthKey;
+      });
+
+      if (filtered.length === 0) return;
+
+      const sampleDate = new Date(filtered[0].created_at);
+      const monthLabel = sampleDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const monthTotal = filtered.reduce((s, o) => s + Number(o.total_amount || 0), 0);
+
+      document.getElementById('monthlyModalTitle').innerText = `${monthLabel} Sales Report`;
+      document.getElementById('monthlyModalSubtitle').innerText = `Total Revenue: ₦${monthTotal.toLocaleString()} | Total Orders: ${filtered.length}`;
+
+      const content = document.getElementById('monthlyModalContent');
+      content.innerHTML = filtered.map(o => `
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex justify-between items-start text-xs">
+          <div>
+            <div class="font-bold text-slate-900">${escapeHtml(o.customer_name)} <span class="text-slate-400 font-normal">(${new Date(o.created_at).toLocaleDateString()})</span></div>
+            <div class="text-slate-500 mt-1">${escapeHtml(o.delivery_address)}</div>
+            <div class="text-red-700 font-semibold mt-1">
+              ${(o.order_items || []).map(i => `${i.quantity}x ${escapeHtml(i.menu_items ? i.menu_items.name : 'Item')}`).join(', ')}
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="font-black text-slate-900 text-sm block">₦${Number(o.total_amount || 0).toLocaleString()}</span>
+            <span class="uppercase font-bold text-[10px] text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 inline-block mt-1">${escapeHtml(o.status)}</span>
+          </div>
+        </div>
+      `).join('');
+
+      toggleMonthlyModal(true);
+    }
+
+    function toggleMonthlyModal(open) {
+      document.getElementById('monthlyModal').classList.toggle('hidden', !open);
+    }
+
     async function updateStatus(id, newStatus) {
-      await supabaseClient.from('orders').update({ status: newStatus }).eq('id', id);
+      const { error } = await supabaseClient.from('orders').update({ status: newStatus }).eq('id', id);
+      if (error) {
+        console.error('Error updating status:', error);
+        alert('Failed to update status.');
+        return;
+      }
       fetchOrders();
     }
 
     async function fetchCategories() {
-      const { data } = await supabaseClient.from('categories').select('*');
+      const { data, error } = await supabaseClient.from('categories').select('*');
+      if (error) return console.error('Error fetching categories:', error);
       categories = data || [];
       const select = document.getElementById('dishCategory');
       select.innerHTML = '<option value="">Select Category</option>' + 
-        categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
     }
 
     async function fetchMenuForAdmin() {
-      const { data: items } = await supabaseClient.from('menu_items').select('*').order('created_at', { ascending: false });
+      const { data: items, error } = await supabaseClient.from('menu_items').select('*').order('created_at', { ascending: false });
+      if (error) return console.error('Error fetching menu items:', error);
+      
       const grid = document.getElementById('menuItemsGrid');
 
       if (!items || items.length === 0) {
@@ -420,13 +559,13 @@
 
       grid.innerHTML = items.map(item => `
         <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col justify-between">
-          <img src="${item.image_url || 'https://via.placeholder.com/300'}" class="w-full h-36 object-cover">
+          <img src="${escapeHtml(item.image_url) || 'https://via.placeholder.com/300'}" class="w-full h-36 object-cover" alt="Meal Image">
           <div class="p-4 flex-grow">
             <div class="flex justify-between items-start mb-2">
-              <h4 class="font-bold text-slate-900 text-sm">${item.name}</h4>
-              <span class="font-black text-red-700 text-sm">₦${Number(item.price).toLocaleString()}</span>
+              <h4 class="font-bold text-slate-900 text-sm">${escapeHtml(item.name)}</h4>
+              <span class="font-black text-red-700 text-sm">₦${Number(item.price || 0).toLocaleString()}</span>
             </div>
-            <p class="text-xs text-slate-500">${item.description || 'No description'}</p>
+            <p class="text-xs text-slate-500">${escapeHtml(item.description) || 'No description'}</p>
           </div>
           <div class="p-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
             <span class="text-xs font-semibold ${item.is_available ? 'text-emerald-600' : 'text-red-600'}">
@@ -451,6 +590,10 @@
 
     document.getElementById('addDishForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const saveBtn = document.getElementById('saveDishBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerText = 'Saving...';
+
       const name = document.getElementById('dishName').value;
       const category_id = document.getElementById('dishCategory').value;
       const price = document.getElementById('dishPrice').value;
@@ -460,6 +603,9 @@
       const { error } = await supabaseClient.from('menu_items').insert([{
         name, category_id, price, image_url, description, is_available: true
       }]);
+
+      saveBtn.disabled = false;
+      saveBtn.innerText = 'Save Dish to Menu';
 
       if (error) {
         alert('Failed to add meal.');
