@@ -13,11 +13,6 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex">
 
-  <!-- Audio Element for Continuous Alarm (Loops until silenced or order updated) -->
-  <audio id="alarmSound" loop preload="auto">
-    <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
-  </audio>
-
   <!-- Sidebar Navigation -->
   <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between p-4 sticky top-0 h-screen">
     <div>
@@ -66,8 +61,8 @@
           <i class="fa-solid fa-bell-slash"></i> Silence Alarm
         </button>
         
-        <!-- NEW: Test Sound / Enable Audio Button -->
-        <button onclick="playAlarm()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-2">
+        <!-- Enable Audio / Test Sound Button -->
+        <button onclick="testAlarm()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-2">
           <i class="fa-solid fa-volume-high"></i> Test Sound
         </button>
 
@@ -181,21 +176,79 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let categories = [];
-    const alarmSound = document.getElementById('alarmSound');
     const silenceAlarmBtn = document.getElementById('silenceAlarmBtn');
+    
+    // Web Audio Context Synthesizer setup
+    let audioCtx = null;
+    let alarmInterval = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // Unlock audio context on first user click anywhere on screen
+    document.addEventListener('click', () => {
+      initAudio();
+    }, { once: true });
+
+    function playBeepTone() {
+      if (!audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // High pitch pitch alarm
+        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3); // Drop pitch
+        
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+      } catch (e) {
+        console.error('Synthesizer audio error:', e);
+      }
+    }
+
+    function playAlarm() {
+      initAudio();
+      silenceAlarmBtn.classList.remove('hidden');
+      silenceAlarmBtn.classList.add('flex');
+
+      if (alarmInterval) clearInterval(alarmInterval);
+      
+      // Ring alarm synthesizer tone repeatedly every 800ms
+      playBeepTone();
+      alarmInterval = setInterval(playBeepTone, 800);
+    }
+
+    function testAlarm() {
+      playAlarm();
+    }
+
+    function stopAlarm() {
+      if (alarmInterval) {
+        clearInterval(alarmInterval);
+        alarmInterval = null;
+      }
+      silenceAlarmBtn.classList.add('hidden');
+      silenceAlarmBtn.classList.remove('flex');
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       fetchOrders();
       fetchCategories();
       fetchMenuForAdmin();
-      subscribeToLiveOrders(); // Enable realtime order updates
-
-      // Unlock browser audio permissions on user's first click anywhere on dashboard
-      document.body.addEventListener('click', () => {
-        if (alarmSound) {
-          alarmSound.load();
-        }
-      }, { once: true });
+      subscribeToLiveOrders();
     });
 
     function switchTab(tab) {
@@ -228,8 +281,6 @@
           { event: 'INSERT', schema: 'public', table: 'orders' },
           (payload) => {
             console.log('🔔 New order received in real-time:', payload.new);
-            
-            // Re-fetch all orders to display complete items data & update totals
             fetchOrders();
             playAlarm();
           }
@@ -237,28 +288,7 @@
         .subscribe();
     }
 
-    // Alarm Sound Control Functions
-    function playAlarm() {
-      if (alarmSound) {
-        alarmSound.currentTime = 0;
-        alarmSound.play().then(() => {
-          silenceAlarmBtn.classList.remove('hidden');
-          silenceAlarmBtn.classList.add('flex');
-        }).catch(e => console.log('Audio play blocked until initial click interaction:', e));
-      }
-    }
-
-    function stopAlarm() {
-      if (alarmSound) {
-        alarmSound.pause();
-        alarmSound.currentTime = 0;
-      }
-      silenceAlarmBtn.classList.add('hidden');
-      silenceAlarmBtn.classList.remove('flex');
-    }
-
     async function fetchOrders() {
-      // Join orders with order_items and menu_items
       const { data: orders, error } = await supabaseClient
         .from('orders')
         .select(`
@@ -297,7 +327,6 @@
       }
 
       tbody.innerHTML = orders.map(o => {
-        // Format Items List
         const itemsListHtml = o.order_items && o.order_items.length > 0
           ? o.order_items.map(i => `
               <div class="text-xs text-slate-700">
