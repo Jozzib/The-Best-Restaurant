@@ -39,7 +39,7 @@
     <div class="max-w-7xl mx-auto relative z-10 text-center sm:text-left">
       <span class="bg-red-700/30 text-red-400 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-red-500/30 inline-block mb-3">Fresh & Hot Delivery</span>
       <h2 class="text-2xl sm:text-4xl font-black mb-2 leading-tight">Delicious Meals Delivered Fast to Your Door</h2>
-      <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Choose from our freshly prepared signature dishes. Select your favorites, order online, and get instant updates.</p>
+      <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Choose from our freshly prepared signature dishes. Select your favorite soups, swallows, and combos, then order online!</p>
     </div>
   </header>
 
@@ -64,6 +64,54 @@
       </div>
     </div>
   </main>
+
+  <!-- Modal: Soup & Swallow Customizer -->
+  <div id="comboModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 sm:p-6 max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <div>
+          <h3 id="comboTitle" class="font-bold text-slate-900 text-lg">Customize Soup & Swallow</h3>
+          <p class="text-xs text-slate-500">Select 1 Soup and 1 Swallow to complete your meal</p>
+        </div>
+        <button onclick="toggleComboModal(false)" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto space-y-5 pr-1 text-sm">
+        <!-- Step 1: Choose Soup -->
+        <div>
+          <label class="block font-bold text-slate-900 mb-2 flex items-center gap-2">
+            <span class="w-5 h-5 bg-red-700 text-white text-xs rounded-full flex items-center justify-center font-black">1</span>
+            Select Your Soup <span class="text-xs text-red-700 font-normal">*Required</span>
+          </label>
+          <div id="soupOptions" class="grid grid-cols-2 gap-2">
+            <!-- Dynamic Soups -->
+          </div>
+        </div>
+
+        <!-- Step 2: Choose Swallow -->
+        <div>
+          <label class="block font-bold text-slate-900 mb-2 flex items-center gap-2">
+            <span class="w-5 h-5 bg-red-700 text-white text-xs rounded-full flex items-center justify-center font-black">2</span>
+            Select Your Swallow <span class="text-xs text-red-700 font-normal">*Required</span>
+          </label>
+          <div id="swallowOptions" class="grid grid-cols-2 gap-2">
+            <!-- Dynamic Swallows -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer & Action -->
+      <div class="border-t pt-4 mt-4 flex items-center justify-between">
+        <div>
+          <span class="text-xs text-slate-400 block font-semibold">Total Price</span>
+          <span id="comboModalPrice" class="text-lg font-black text-red-700">₦0</span>
+        </div>
+        <button onclick="confirmComboToCart()" class="bg-red-700 hover:bg-red-800 text-white font-bold text-xs px-5 py-3 rounded-xl transition shadow-md flex items-center gap-2">
+          <i class="fa-solid fa-basket-shopping"></i> Add Combo to Cart
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Cart Slide-over Drawer -->
   <div id="cartDrawer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-end">
@@ -125,7 +173,31 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let allMenuItems = [];
+    let allCategories = [];
     let cart = JSON.parse(localStorage.getItem('restaurant_cart')) || [];
+    let activeComboItem = null;
+
+    // Preset options for Soups and Swallows selection
+    const SOUP_OPTIONS = [
+      'Egusi Soup',
+      'Ogbono Soup',
+      'Efo Riro (Vegetable)',
+      'Okro Soup',
+      'Bitter Leaf Soup',
+      'Banga Soup',
+      'Afang Soup',
+      'Edikang Ikong'
+    ];
+
+    const SWALLOW_OPTIONS = [
+      'Pounded Yam',
+      'Eba / Garri (Yellow)',
+      'Eba / Garri (White)',
+      'Semovita',
+      'Wheat Meal',
+      'Amala (Black)',
+      'Fufu'
+    ];
 
     document.addEventListener('DOMContentLoaded', () => {
       fetchCategories();
@@ -137,8 +209,9 @@
       const { data, error } = await supabaseClient.from('categories').select('*');
       if (error) return console.error('Categories load error:', error);
       
+      allCategories = data || [];
       const container = document.getElementById('categoryContainer');
-      container.innerHTML = (data || []).map(cat => `
+      container.innerHTML = allCategories.map(cat => `
         <button onclick="filterCategory('${cat.id}')" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
           ${cat.name}
         </button>
@@ -163,26 +236,32 @@
         return;
       }
 
-      grid.innerHTML = items.map(item => `
-        <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between">
-          <div>
-            <div class="relative h-44 w-full bg-slate-100 overflow-hidden">
-              <img src="${item.image_url || 'https://via.placeholder.com/300'}" alt="${item.name}" class="w-full h-full object-cover">
-              ${!item.is_available ? '<div class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center text-white text-xs font-bold uppercase tracking-wider">Out of Stock</div>' : ''}
+      grid.innerHTML = items.map(item => {
+        // Detect if this item belongs to Soup & Swallow category
+        const catObj = allCategories.find(c => c.id === item.category_id);
+        const isSoupSwallowCategory = catObj && catObj.name.toLowerCase().includes('soup');
+
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div>
+              <div class="relative h-44 w-full bg-slate-100 overflow-hidden">
+                <img src="${item.image_url || 'https://via.placeholder.com/300'}" alt="${item.name}" class="w-full h-full object-cover">
+                ${!item.is_available ? '<div class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center text-white text-xs font-bold uppercase tracking-wider">Out of Stock</div>' : ''}
+              </div>
+              <div class="p-4">
+                <h3 class="font-bold text-slate-900 text-sm mb-1">${item.name}</h3>
+                <p class="text-xs text-slate-500 line-clamp-2 mb-3">${item.description || 'Freshly prepared specialty dish.'}</p>
+              </div>
             </div>
-            <div class="p-4">
-              <h3 class="font-bold text-slate-900 text-sm mb-1">${item.name}</h3>
-              <p class="text-xs text-slate-500 line-clamp-2 mb-3">${item.description || 'Freshly prepared specialty dish.'}</p>
+            <div class="p-4 pt-0 flex items-center justify-between border-t border-slate-50 mt-auto">
+              <span class="font-black text-red-700 text-base">₦${Number(item.price).toLocaleString()}</span>
+              <button onclick="handleAddToCartClick('${item.id}', ${isSoupSwallowCategory})" ${!item.is_available ? 'disabled' : ''} class="bg-red-700 hover:bg-red-800 disabled:bg-slate-300 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-plus"></i> ${isSoupSwallowCategory ? 'Customize & Add' : 'Add'}
+              </button>
             </div>
           </div>
-          <div class="p-4 pt-0 flex items-center justify-between border-t border-slate-50 mt-auto">
-            <span class="font-black text-red-700 text-base">₦${Number(item.price).toLocaleString()}</span>
-            <button onclick="addToCart('${item.id}')" ${!item.is_available ? 'disabled' : ''} class="bg-red-700 hover:bg-red-800 disabled:bg-slate-300 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
-              <i class="fa-solid fa-plus"></i> Add
-            </button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     function filterCategory(catId) {
@@ -199,27 +278,77 @@
       }
     }
 
-    function addToCart(itemId) {
+    function handleAddToCartClick(itemId, isSoupSwallow) {
       const item = allMenuItems.find(i => i.id === itemId);
       if (!item) return;
 
-      const existing = cart.find(c => c.id === itemId);
+      if (isSoupSwallow) {
+        openComboModal(item);
+      } else {
+        addToCart(item.id, item.name, Number(item.price));
+      }
+    }
+
+    function openComboModal(item) {
+      activeComboItem = item;
+      document.getElementById('comboTitle').innerText = item.name;
+      document.getElementById('comboModalPrice').innerText = `₦${Number(item.price).toLocaleString()}`;
+
+      // Render Soups Radio Options
+      const soupBox = document.getElementById('soupOptions');
+      soupBox.innerHTML = SOUP_OPTIONS.map((soup, idx) => `
+        <label class="border border-slate-200 p-2.5 rounded-xl cursor-pointer hover:border-red-600 transition flex items-center space-x-2 bg-slate-50">
+          <input type="radio" name="selectedSoup" value="${soup}" ${idx === 0 ? 'checked' : ''} class="accent-red-700" />
+          <span class="text-xs font-semibold text-slate-800">${soup}</span>
+        </label>
+      `).join('');
+
+      // Render Swallows Radio Options
+      const swallowBox = document.getElementById('swallowOptions');
+      swallowBox.innerHTML = SWALLOW_OPTIONS.map((swallow, idx) => `
+        <label class="border border-slate-200 p-2.5 rounded-xl cursor-pointer hover:border-red-600 transition flex items-center space-x-2 bg-slate-50">
+          <input type="radio" name="selectedSwallow" value="${swallow}" ${idx === 0 ? 'checked' : ''} class="accent-red-700" />
+          <span class="text-xs font-semibold text-slate-800">${swallow}</span>
+        </label>
+      `).join('');
+
+      toggleComboModal(true);
+    }
+
+    function toggleComboModal(open) {
+      document.getElementById('comboModal').classList.toggle('hidden', !open);
+    }
+
+    function confirmComboToCart() {
+      if (!activeComboItem) return;
+
+      const selectedSoup = document.querySelector('input[name="selectedSoup"]:checked')?.value || 'Egusi Soup';
+      const selectedSwallow = document.querySelector('input[name="selectedSwallow"]:checked')?.value || 'Pounded Yam';
+
+      const customName = `${activeComboItem.name} (${selectedSoup} + ${selectedSwallow})`;
+
+      addToCart(activeComboItem.id, customName, Number(activeComboItem.price));
+      toggleComboModal(false);
+      toggleCartDrawer(true);
+    }
+
+    function addToCart(itemId, name, price) {
+      const existing = cart.find(c => c.id === itemId && c.name === name);
       if (existing) {
         existing.quantity += 1;
       } else {
-        cart.push({ id: item.id, name: item.name, price: Number(item.price), quantity: 1 });
+        cart.push({ id: itemId, name: name, price: price, quantity: 1 });
       }
 
       saveCart();
       toggleCartDrawer(true);
     }
 
-    function updateCartQty(itemId, delta) {
-      const idx = cart.findIndex(c => c.id === itemId);
-      if (idx > -1) {
-        cart[idx].quantity += delta;
-        if (cart[idx].quantity <= 0) {
-          cart.splice(idx, 1);
+    function updateCartQty(index, delta) {
+      if (cart[index]) {
+        cart[index].quantity += delta;
+        if (cart[index].quantity <= 0) {
+          cart.splice(index, 1);
         }
       }
       saveCart();
@@ -246,16 +375,16 @@
         return;
       }
 
-      cartItemsList.innerHTML = cart.map(item => `
+      cartItemsList.innerHTML = cart.map((item, idx) => `
         <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/60">
           <div class="flex-1 min-w-0 mr-3">
-            <h4 class="font-bold text-slate-800 text-xs truncate">${item.name}</h4>
+            <h4 class="font-bold text-slate-800 text-xs leading-snug">${item.name}</h4>
             <span class="text-xs font-semibold text-red-700">₦${item.price.toLocaleString()}</span>
           </div>
           <div class="flex items-center space-x-2 bg-white px-2 py-1 rounded-lg border border-slate-200">
-            <button onclick="updateCartQty('${item.id}', -1)" class="text-slate-500 hover:text-red-700 text-xs font-bold px-1.5">&minus;</button>
+            <button onclick="updateCartQty(${idx}, -1)" class="text-slate-500 hover:text-red-700 text-xs font-bold px-1.5">&minus;</button>
             <span class="text-xs font-bold text-slate-800">${item.quantity}</span>
-            <button onclick="updateCartQty('${item.id}', 1)" class="text-slate-500 hover:text-red-700 text-xs font-bold px-1.5">&plus;</button>
+            <button onclick="updateCartQty(${idx}, 1)" class="text-slate-500 hover:text-red-700 text-xs font-bold px-1.5">&plus;</button>
           </div>
         </div>
       `).join('');
@@ -278,7 +407,6 @@
       const delivery_address = document.getElementById('custAddress').value;
       const total_amount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-      // 1. Create main order row
       const { data: orderData, error: orderErr } = await supabaseClient
         .from('orders')
         .insert([{
@@ -299,7 +427,6 @@
         return;
       }
 
-      // 2. Insert individual order line items
       const orderItems = cart.map(item => ({
         order_id: orderData.id,
         menu_item_id: item.id,
