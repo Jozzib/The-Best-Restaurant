@@ -1,9 +1,9 @@
 // 1. Initialize Supabase
 const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
-// !!! REPLACE 'YOUR_ANON_KEY_HERE' WITH YOUR ACTUAL SUPABASE ANON KEY !!!
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU'; 
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Renamed variable to avoid window.supabase collision
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // State variables
 let menuItems = [];
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Fetch Categories from Supabase
 async function fetchCategories() {
-  const { data, error } = await supabase.from('categories').select('*');
+  const { data, error } = await supabaseClient.from('categories').select('*');
   if (error) {
     console.error('Error fetching categories:', error);
     return;
@@ -42,7 +42,7 @@ async function fetchCategories() {
 
 // Fetch Menu Items from Supabase
 async function fetchMenuItems() {
-  const { data, error } = await supabase.from('menu_items').select('*').eq('is_available', true);
+  const { data, error } = await supabaseClient.from('menu_items').select('*').eq('is_available', true);
   if (error) {
     console.error('Error fetching menu items:', error);
     menuGrid.innerHTML = `<p class="text-red-500 col-span-full text-center py-10">Failed to load menu items.</p>`;
@@ -194,7 +194,7 @@ checkoutForm.addEventListener('submit', async (e) => {
   const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   // 1. Insert Order into Supabase
-  const { data: order, error: orderError } = await supabase
+  const { data: order, error: orderError } = await supabaseClient
     .from('orders')
     .insert([{ customer_name: name, customer_phone: phone, delivery_address: address, total_amount: totalAmount }])
     .select()
@@ -214,7 +214,7 @@ checkoutForm.addEventListener('submit', async (e) => {
     unit_price: item.price
   }));
 
-  const { error: itemsError } = await supabase.from('order_items').insert(orderItemsData);
+  const { error: itemsError } = await supabaseClient.from('order_items').insert(orderItemsData);
 
   if (itemsError) {
     console.error('Error adding order items:', itemsError);
