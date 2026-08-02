@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Best Restaurant | Online Food Ordering</title>
+  <!-- Tailwind CSS CDN for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- FontAwesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+
+  <!-- Header / Navigation -->
+  <header class="bg-red-700 text-white shadow-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i class="fa-solid font-bold text-yellow-400 text-2xl fa-utensils"></i>
+        <h1 class="text-2xl font-black tracking-wide">The Best Restaurant</h1>
+      </div>
+      <button id="cartBtn" class="bg-yellow-500 hover:bg-yellow-400 text-red-950 font-bold px-4 py-2 rounded-full flex items-center space-x-2 transition">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span>Cart</span>
+        <span id="cartCount" class="bg-red-700 text-white text-xs px-2 py-0.5 rounded-full">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="bg-red-800 text-white py-12 px-4 text-center">
+    <h2 class="text-3xl md:text-5xl font-extrabold mb-3">Delicious Meals Delivered Fast</h2>
+    <p class="text-yellow-200 text-lg">Freshly prepared local delicacies right to your doorstep.</p>
+  </section>
+
+  <!-- Main Content -->
+  <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
+    <!-- Category Filter Bar -->
+    <div id="categoryContainer" class="flex overflow-x-auto gap-3 pb-4 mb-6 scrollbar-none">
+      <button class="bg-red-700 text-white font-semibold px-4 py-2 rounded-full whitespace-nowrap active-category" onclick="filterCategory('all')">All Items</button>
+      <!-- Categories will load dynamically here -->
+    </div>
+
+    <!-- Food Menu Grid -->
+    <div id="menuGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <p class="text-gray-500 col-span-full text-center py-10">Loading delicious menu...</p>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-gray-400 py-6 text-center text-sm border-t border-gray-800">
+    <p>© 2026 The Best Restaurant. All Rights Reserved.</p>
+  </footer>
+
+  <!-- Shopping Cart Drawer (Hidden by default) -->
+  <div id="cartDrawer" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-end">
+    <div class="bg-white w-full max-w-md h-full flex flex-col justify-between p-6 overflow-y-auto">
+      <div>
+        <div class="flex justify-between items-center border-b pb-4 mb-4">
+          <h3 class="text-xl font-bold text-gray-900">Your Order</h3>
+          <button id="closeCartBtn" class="text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+        </div>
+        <div id="cartItems" class="space-y-4">
+          <p class="text-gray-500 text-center py-6">Your cart is empty.</p>
+        </div>
+      </div>
+
+      <div id="cartFooter" class="border-t pt-4 mt-6 hidden">
+        <div class="flex justify-between font-bold text-lg mb-4">
+          <span>Total:</span>
+          <span id="cartTotal">₦0</span>
+        </div>
+        
+        <!-- Checkout Form -->
+        <form id="checkoutForm" class="space-y-3">
+          <input type="text" id="custName" placeholder="Full Name" required class="w-full border rounded px-3 py-2 text-sm focus:outline-red-600" />
+          <input type="tel" id="custPhone" placeholder="Phone Number" required class="w-full border rounded px-3 py-2 text-sm focus:outline-red-600" />
+          <textarea id="custAddress" placeholder="Delivery Address" required class="w-full border rounded px-3 py-2 text-sm focus:outline-red-600" rows="2"></textarea>
+          <button type="submit" class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded shadow transition">
+            Place Order
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Script -->
+  <script src="app.js"></script>
+</body>
+</html>
