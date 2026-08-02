@@ -38,25 +38,34 @@
   <header class="bg-slate-900 text-white py-10 px-4 sm:px-6 relative overflow-hidden">
     <div class="max-w-7xl mx-auto relative z-10 text-center sm:text-left">
       <span class="bg-red-700/30 text-red-400 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-red-500/30 inline-block mb-3">Fresh & Hot Delivery</span>
-      <h2 class="text-2xl sm:text-4xl font-black mb-2 leading-tight">Delicious Meals Delivered Fast to Your Door</h2>
-      <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Choose your favorite soups, swallows, proteins, and drinks in any quantity, then order online!</p>
+      <h2 class="text-2xl sm:text-4xl font-black mb-2 leading-tight">Order Your Favorite Meals</h2>
+      <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Choose a category below to browse through all available options and customize your purchase!</p>
     </div>
   </header>
 
   <!-- Main Content Container -->
   <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 flex-1">
     
-    <!-- Primary Category Filter Buttons -->
+    <!-- Primary Food Category Selection Tabs -->
     <div class="flex items-center space-x-2 overflow-x-auto pb-3 mb-2 scrollbar-none max-w-full">
-      <button onclick="filterCategory('all', this)" class="category-btn active bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow-sm transition">
-        All Meals
+      <button onclick="selectCategory('all', this)" class="category-btn active bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow-sm transition">
+        All Items
       </button>
-      <div id="categoryContainer" class="flex items-center space-x-2">
-        <!-- Dynamic Categories Load Here -->
+      <button onclick="selectCategory('swallow_soup', this)" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
+        Swallow & Soups
+      </button>
+      <button onclick="selectCategory('rice_dishes', this)" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
+        Rice Dishes
+      </button>
+      <button onclick="selectCategory('porridge', this)" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
+        Porridge
+      </button>
+      <div id="dynamicCategoryContainer" class="flex items-center space-x-2">
+        <!-- Extra dynamic Supabase categories load here -->
       </div>
     </div>
 
-    <!-- Secondary Sub-filter for Soup & Swallow Sub-types -->
+    <!-- Secondary Sub-filter for Swallow & Soup Items -->
     <div id="subCategoryBar" class="hidden flex items-center space-x-2 overflow-x-auto pb-4 mb-6">
       <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">Filter Type:</span>
       <button onclick="filterSubCategory('all', this)" class="sub-btn active bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition">All Items</button>
@@ -134,100 +143,97 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let allMenuItems = [];
-    let allCategories = [];
-    let currentFilterCategoryId = 'all';
+    let dbCategories = [];
+    let currentCategoryKey = 'all';
     let currentSubFilter = 'all';
     let cart = JSON.parse(localStorage.getItem('restaurant_cart')) || [];
-    let itemQuantities = {}; // Tracks quantity selected on the card before adding to cart
+    let itemQuantities = {};
 
-    // Default Fallback Menu Items for Soups & Swallows if DB lacks granular items
-    const DEFAULT_SWALLOW_SOUP_ITEMS = [
+    // Standard Built-in Food Options across categories
+    const FULL_BUILTIN_MENU = [
       // SOUPS
-      { id: 'soup_egusi', name: 'Egusi Soup', price: 2000, type: 'soup', description: 'Rich melon seed soup prepared with palm oil and spices.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'soup_ogbono', name: 'Ogbono Soup', price: 2000, type: 'soup', description: 'Traditional draw soup made with ground wild mango seeds.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'soup_efo', name: 'Efo Riro (Vegetable Soup)', price: 2200, type: 'soup', description: 'Savory Yorùbá spinach stew enriched with locust beans and peppers.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'soup_okro', name: 'Okro Soup', price: 1800, type: 'soup', description: 'Fresh chopped okra cooked in rich spicy seafood broth.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'soup_banga', name: 'Banga Soup', price: 2500, type: 'soup', description: 'Delta style palm nut soup flavored with aromatic local herbs.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'soup_bitterleaf', name: 'Bitter Leaf Soup (Ofe Onugbu)', price: 2200, type: 'soup', description: 'Hearty Eastern Nigerian soup made with washed bitter leaves and cocoyam.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'soup_egusi', name: 'Egusi Soup', price: 2000, category_key: 'swallow_soup', sub_type: 'soup', description: 'Rich melon seed soup prepared with palm oil, fish & spices.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'soup_ogbono', name: 'Ogbono Soup', price: 2000, category_key: 'swallow_soup', sub_type: 'soup', description: 'Traditional draw soup made with ground wild mango seeds.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'soup_efo', name: 'Efo Riro (Vegetable Soup)', price: 2200, category_key: 'swallow_soup', sub_type: 'soup', description: 'Savory Yorùbá spinach stew enriched with locust beans.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'soup_okro', name: 'Okro Soup', price: 1800, category_key: 'swallow_soup', sub_type: 'soup', description: 'Fresh chopped okra cooked in rich spicy seafood broth.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'soup_bitterleaf', name: 'Bitter Leaf Soup (Ofe Onugbu)', price: 2200, category_key: 'swallow_soup', sub_type: 'soup', description: 'Hearty Eastern Nigerian soup made with washed bitter leaves.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
 
       // SWALLOWS
-      { id: 'swallow_pounded_yam', name: 'Pounded Yam (1 Wrap)', price: 1000, type: 'swallow', description: 'Smooth, fluffy freshly pounded white yam wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'swallow_eba_yellow', name: 'Eba / Garri (Yellow)', price: 600, type: 'swallow', description: 'Steamed cassava meal prepared with palm oil garri.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'swallow_eba_white', name: 'Eba / Garri (White)', price: 500, type: 'swallow', description: 'Classic steamed white cassava meal wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'swallow_amala', name: 'Amala (Black)', price: 700, type: 'swallow', description: 'Traditional yam flour swallow wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'swallow_semo', name: 'Semovita', price: 800, type: 'swallow', description: 'Smooth, firm semolina flour swallow wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'swallow_wheat', name: 'Wheat Meal', price: 800, type: 'swallow', description: 'Healthy whole wheat flour swallow wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'swallow_pounded_yam', name: 'Pounded Yam (1 Wrap)', price: 1000, category_key: 'swallow_soup', sub_type: 'swallow', description: 'Smooth, fluffy freshly pounded white yam wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'swallow_eba', name: 'Yellow Eba / Garri (1 Wrap)', price: 600, category_key: 'swallow_soup', sub_type: 'swallow', description: 'Steamed cassava meal prepared with yellow garri.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'swallow_amala', name: 'Amala (1 Wrap)', price: 700, category_key: 'swallow_soup', sub_type: 'swallow', description: 'Traditional black yam flour swallow wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'swallow_semo', name: 'Semovita (1 Wrap)', price: 800, category_key: 'swallow_soup', sub_type: 'swallow', description: 'Smooth, firm semolina flour swallow wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
 
-      // PROTEINS / MEAT
-      { id: 'meat_goat', name: 'Goat Meat (Asun / Peppered)', price: 1500, type: 'protein', description: 'Tender chunk of spiced goat meat.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'meat_beef', name: 'Fried / Stewed Beef', price: 1000, type: 'protein', description: 'Succulent seasoned beef chunk.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'meat_chicken', name: 'Fried Chicken Quarter', price: 1800, type: 'protein', description: 'Crispy seasoned chicken piece.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'meat_fish', name: 'Fried / Grilled Catfish Cut', price: 2000, type: 'protein', description: 'Fresh catfish cutlet stewed in pepper sauce.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'meat_assorted', name: 'Assorted Meat (Shaki / Abodi)', price: 1200, type: 'protein', description: 'Tender mixed offal meat piece.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true }
+      // PROTEINS
+      { id: 'meat_goat', name: 'Goat Meat (1 Piece)', price: 1500, category_key: 'swallow_soup', sub_type: 'protein', description: 'Tender chunk of spiced goat meat.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'meat_beef', name: 'Fried / Stewed Beef (1 Piece)', price: 1000, category_key: 'swallow_soup', sub_type: 'protein', description: 'Succulent seasoned beef chunk.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'meat_chicken', name: 'Fried Chicken Quarter', price: 1800, category_key: 'swallow_soup', sub_type: 'protein', description: 'Crispy seasoned chicken piece.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+
+      // RICE DISHES
+      { id: 'rice_jollof', name: 'Smokey Party Jollof Rice', price: 2500, category_key: 'rice_dishes', sub_type: 'rice', description: 'Authentic Nigerian party Jollof rice cooked over firewood flavor.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'rice_fried', name: 'Special Fried Rice', price: 2500, category_key: 'rice_dishes', sub_type: 'rice', description: 'Savory fried rice garnished with fresh sweet corn, green peas & liver.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'rice_ofada', name: 'Ofada Rice & Ayamase Sauce', price: 3000, category_key: 'rice_dishes', sub_type: 'rice', description: 'Local unpolished Ofada rice served with spicy green pepper Ayamase stew.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'rice_white_stew', name: 'White Rice & Beef Stew', price: 2200, category_key: 'rice_dishes', sub_type: 'rice', description: 'Steamed white rice served with rich tomato pepper stew.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+
+      // PORRIDGE
+      { id: 'porridge_yam', name: 'Special Yam Porridge (Asaro)', price: 2500, category_key: 'porridge', sub_type: 'porridge', description: 'Flavorsome mashed yam porridge cooked with palm oil, crayfish & vegetables.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'porridge_beans', name: 'Beans Porridge (Ewa Aganyin)', price: 2000, category_key: 'porridge', sub_type: 'porridge', description: 'Soft cooked brown beans served with dark caramelized pepper sauce.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'porridge_plantain', name: 'Unripe Plantain Porridge', price: 2300, category_key: 'porridge', sub_type: 'porridge', description: 'Healthy plantain porridge cooked with dry fish, vegetable greens & palm oil.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true }
     ];
 
     document.addEventListener('DOMContentLoaded', () => {
-      fetchCategories();
-      fetchMenuItems();
+      fetchCategoriesAndMenu();
       renderCart();
     });
 
-    async function fetchCategories() {
-      const { data, error } = await supabaseClient.from('categories').select('*');
-      if (error) return console.error('Categories load error:', error);
-      
-      allCategories = data || [];
-      const container = document.getElementById('categoryContainer');
-      container.innerHTML = allCategories.map(cat => `
-        <button onclick="filterCategory('${cat.id}', this)" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
+    async function fetchCategoriesAndMenu() {
+      // Load Supabase Categories
+      const { data: catData } = await supabaseClient.from('categories').select('*');
+      dbCategories = catData || [];
+
+      // Render extra dynamic categories if present
+      const extraCategories = dbCategories.filter(c => {
+        const name = c.name.toLowerCase();
+        return !name.includes('swallow') && !name.includes('soup') && !name.includes('rice') && !name.includes('porridge');
+      });
+
+      const dynamicContainer = document.getElementById('dynamicCategoryContainer');
+      dynamicContainer.innerHTML = extraCategories.map(cat => `
+        <button onclick="selectCategory('${cat.id}', this)" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
           ${cat.name}
         </button>
       `).join('');
-    }
 
-    async function fetchMenuItems() {
-      const { data, error } = await supabaseClient.from('menu_items').select('*').order('name');
-      
-      let dbItems = data || [];
+      // Load database Menu Items
+      const { data: dbItems } = await supabaseClient.from('menu_items').select('*');
+      let combined = [...(dbItems || [])];
 
-      // Find the Soup & Swallow Category ID
-      const soupCat = allCategories.find(c => c.name.toLowerCase().includes('swallow') || c.name.toLowerCase().includes('soup'));
-      const soupCatId = soupCat ? soupCat.id : null;
-
-      // Augment database menu with granular options if necessary
-      const combinedItems = [...dbItems];
-
-      DEFAULT_SWALLOW_SOUP_ITEMS.forEach(item => {
-        if (!combinedItems.some(i => i.name.toLowerCase() === item.name.toLowerCase())) {
-          combinedItems.push({
-            ...item,
-            category_id: soupCatId || 'swallow_soup_cat'
-          });
+      // Merge fallback built-in items
+      FULL_BUILTIN_MENU.forEach(bItem => {
+        if (!combined.some(i => i.name.toLowerCase() === bItem.name.toLowerCase())) {
+          combined.push(bItem);
         }
       });
 
-      allMenuItems = combinedItems;
-      applyFilters();
+      allMenuItems = combined;
+      renderFilteredMenu();
     }
 
-    function filterCategory(catId, btn) {
-      currentFilterCategoryId = catId;
+    function selectCategory(catKey, btn) {
+      currentCategoryKey = catKey;
       currentSubFilter = 'all';
 
-      // Button styling active state
+      // Update button styling
       document.querySelectorAll('.category-btn').forEach(b => {
         b.className = 'category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition';
       });
       if (btn) btn.className = 'category-btn active bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow-sm transition';
 
-      // Check if current category is Soup & Swallow
-      const activeCat = allCategories.find(c => c.id === catId);
-      const isSoupSwallow = (activeCat && (activeCat.name.toLowerCase().includes('swallow') || activeCat.name.toLowerCase().includes('soup'))) || catId === 'swallow_soup_cat';
+      // Show sub-filter bar on Swallow & Soups
+      const isSwallowSoup = catKey === 'swallow_soup';
+      document.getElementById('subCategoryBar').classList.toggle('hidden', !isSwallowSoup);
 
-      // Show/Hide Subcategory bar
-      document.getElementById('subCategoryBar').classList.toggle('hidden', !isSoupSwallow);
-
-      applyFilters();
+      renderFilteredMenu();
     }
 
     function filterSubCategory(subType, btn) {
@@ -237,47 +243,52 @@
       });
       if (btn) btn.className = 'sub-btn active bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition';
 
-      applyFilters();
+      renderFilteredMenu();
     }
 
-    function applyFilters() {
+    function renderFilteredMenu() {
       let filtered = [...allMenuItems];
 
-      if (currentFilterCategoryId !== 'all') {
-        filtered = filtered.filter(i => i.category_id === currentFilterCategoryId || (currentFilterCategoryId === 'swallow_soup_cat' && i.type));
+      if (currentCategoryKey !== 'all') {
+        filtered = filtered.filter(item => {
+          if (item.category_key) {
+            return item.category_key === currentCategoryKey;
+          }
+
+          const cat = dbCategories.find(c => c.id === item.category_id);
+          const catName = cat ? cat.name.toLowerCase() : '';
+
+          if (currentCategoryKey === 'swallow_soup') return catName.includes('swallow') || catName.includes('soup');
+          if (currentCategoryKey === 'rice_dishes') return catName.includes('rice');
+          if (currentCategoryKey === 'porridge') return catName.includes('porridge');
+          return item.category_id === currentCategoryKey;
+        });
       }
 
       if (currentSubFilter !== 'all') {
-        filtered = filtered.filter(i => i.type === currentSubFilter);
+        filtered = filtered.filter(item => item.sub_type === currentSubFilter);
       }
 
-      renderMenuItems(filtered);
-    }
-
-    function renderMenuItems(items) {
       const grid = document.getElementById('menuGrid');
-      if (items.length === 0) {
+
+      if (filtered.length === 0) {
         grid.innerHTML = `<p class="col-span-full text-center text-slate-400 text-sm py-12">No menu items found in this section.</p>`;
         return;
       }
 
-      grid.innerHTML = items.map(item => {
+      grid.innerHTML = filtered.map(item => {
         const qty = itemQuantities[item.id] || 1;
-        const badgeColor = item.type === 'soup' ? 'bg-amber-100 text-amber-800' :
-                           item.type === 'swallow' ? 'bg-orange-100 text-orange-800' :
-                           item.type === 'protein' ? 'bg-red-100 text-red-800' : 'hidden';
 
         return `
           <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between">
             <div>
               <div class="relative h-40 w-full bg-slate-100 overflow-hidden">
                 <img src="${item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'}" alt="${item.name}" class="w-full h-full object-cover">
-                ${item.type ? `<span class="absolute top-2 left-2 text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-sm ${badgeColor}">${item.type}</span>` : ''}
                 ${!item.is_available ? '<div class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center text-white text-xs font-bold uppercase tracking-wider">Out of Stock</div>' : ''}
               </div>
               <div class="p-4">
                 <h3 class="font-bold text-slate-900 text-sm mb-1">${item.name}</h3>
-                <p class="text-xs text-slate-500 line-clamp-2 mb-2">${item.description || 'Freshly prepared specialty meal.'}</p>
+                <p class="text-xs text-slate-500 line-clamp-2 mb-2">${item.description || 'Freshly prepared specialty dish.'}</p>
               </div>
             </div>
 
@@ -285,7 +296,7 @@
               <div class="flex items-center justify-between">
                 <span class="font-black text-red-700 text-base">₦${Number(item.price).toLocaleString()}</span>
                 
-                <!-- Quantity Picker on Card -->
+                <!-- In-card Quantity Selector -->
                 <div class="flex items-center space-x-2 bg-slate-100 p-1 rounded-lg border border-slate-200">
                   <button onclick="adjustCardQty('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded font-bold text-slate-700 hover:bg-slate-200 text-xs shadow-xs">&minus;</button>
                   <span id="qty-${item.id}" class="text-xs font-bold text-slate-800 px-1">${qty}</span>
@@ -323,7 +334,6 @@
         cart.push({ id: item.id, name: item.name, price: Number(item.price), quantity: qty });
       }
 
-      // Reset card qty back to 1
       itemQuantities[itemId] = 1;
       const qtyElem = document.getElementById(`qty-${itemId}`);
       if (qtyElem) qtyElem.innerText = 1;
@@ -417,7 +427,7 @@
 
       const orderItems = cart.map(item => ({
         order_id: orderData.id,
-        menu_item_id: item.id.includes('_') ? null : item.id, // Handles custom swallow items
+        menu_item_id: (typeof item.id === 'string' && item.id.includes('_')) ? null : item.id,
         quantity: item.quantity,
         unit_price: item.price
       }));
