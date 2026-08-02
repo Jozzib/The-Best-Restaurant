@@ -140,7 +140,9 @@
   <script>
     const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false }
+    });
 
     let allMenuItems = [];
     let dbCategories = [];
@@ -177,32 +179,41 @@
     });
 
     async function fetchCategoriesAndMenu() {
-      const { data: catData } = await supabaseClient.from('categories').select('*');
-      dbCategories = catData || [];
+      try {
+        const { data: catData, error: catErr } = await supabaseClient.from('categories').select('*');
+        if (catErr) console.warn('Could not fetch categories from DB:', catErr.message);
+        dbCategories = catData || [];
 
-      const extraCategories = dbCategories.filter(c => {
-        const name = c.name ? c.name.toLowerCase() : '';
-        return !name.includes('swallow') && !name.includes('soup') && !name.includes('rice') && !name.includes('porridge');
-      });
+        const extraCategories = dbCategories.filter(c => {
+          const name = c.name ? c.name.toLowerCase() : '';
+          return !name.includes('swallow') && !name.includes('soup') && !name.includes('rice') && !name.includes('porridge');
+        });
 
-      const dynamicContainer = document.getElementById('dynamicCategoryContainer');
-      dynamicContainer.innerHTML = extraCategories.map(cat => `
-        <button onclick="selectCategory('${cat.id}', this)" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
-          ${cat.name}
-        </button>
-      `).join('');
+        const dynamicContainer = document.getElementById('dynamicCategoryContainer');
+        dynamicContainer.innerHTML = extraCategories.map(cat => `
+          <button onclick="selectCategory('${cat.id}', this)" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
+            ${cat.name}
+          </button>
+        `).join('');
 
-      const { data: dbItems } = await supabaseClient.from('menu_items').select('*');
-      let combined = [...(dbItems || [])];
+        const { data: dbItems, error: itemErr } = await supabaseClient.from('menu_items').select('*');
+        if (itemErr) console.warn('Could not fetch menu items from DB:', itemErr.message);
+        
+        let combined = [...(dbItems || [])];
 
-      FULL_BUILTIN_MENU.forEach(bItem => {
-        if (!combined.some(i => i.name.toLowerCase() === bItem.name.toLowerCase())) {
-          combined.push(bItem);
-        }
-      });
+        FULL_BUILTIN_MENU.forEach(bItem => {
+          if (!combined.some(i => i.name.toLowerCase() === bItem.name.toLowerCase())) {
+            combined.push(bItem);
+          }
+        });
 
-      allMenuItems = combined;
-      renderFilteredMenu();
+        allMenuItems = combined;
+        renderFilteredMenu();
+      } catch (err) {
+        console.error('Error in fetchCategoriesAndMenu:', err);
+        allMenuItems = FULL_BUILTIN_MENU;
+        renderFilteredMenu();
+      }
     }
 
     function selectCategory(catKey, btn) {
@@ -388,54 +399,55 @@
       const delivery_address = document.getElementById('custAddress').value;
       const total_amount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-      // 1. Insert Order
-      const { data: orderData, error: orderErr } = await supabaseClient
-        .from('orders')
-        .insert([{
-          customer_name,
-          customer_phone,
-          delivery_address,
-          total_amount,
-          status: 'pending'
-        }])
-        .select()
-        .single();
+      try {
+        // 1. Insert Order
+        const { data: orderData, error: orderErr } = await supabaseClient
+          .from('orders')
+          .insert([{
+            customer_name,
+            customer_phone,
+            delivery_address,
+            total_amount,
+            status: 'pending'
+          }])
+          .select()
+          .single();
 
-      if (orderErr) {
-        alert('Failed to submit order. Please check connection/permissions.');
-        console.error(orderErr);
+        if (orderErr) {
+          throw new Error(orderErr.message || 'Failed to submit order');
+        }
+
+        // 2. Prepare Line Items safely supporting UUID check
+        const orderItems = cart.map(item => {
+          const isUuid = typeof item.id === 'string' && item.id.length === 36 && item.id.includes('-');
+          
+          return {
+            order_id: orderData.id,
+            menu_item_id: isUuid ? item.id : null,
+            item_name: item.name,
+            quantity: item.quantity,
+            unit_price: item.price
+          };
+        });
+
+        const { error: itemsErr } = await supabaseClient.from('order_items').insert(orderItems);
+
+        if (itemsErr) {
+          console.error('Order line items insert error:', itemsErr);
+        }
+
+        alert('🎉 Order placed successfully! The kitchen is preparing your meal.');
+        cart = [];
+        saveCart();
+        document.getElementById('checkoutForm').reset();
+        toggleCartDrawer(false);
+      } catch (err) {
+        console.error(err);
+        alert('Failed to submit order: ' + (err.message || 'Please check connection/permissions.'));
+      } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = `<span>Place Order</span><i class="fa-solid fa-arrow-right"></i>`;
-        return;
       }
-
-      // 2. Prepare Line Items safely supporting UUID check
-      const orderItems = cart.map(item => {
-        const isUuid = typeof item.id === 'string' && item.id.length === 36 && item.id.includes('-');
-        
-        return {
-          order_id: orderData.id,
-          menu_item_id: isUuid ? item.id : null,
-          item_name: item.name,
-          quantity: item.quantity,
-          unit_price: item.price
-        };
-      });
-
-      const { error: itemsErr } = await supabaseClient.from('order_items').insert(orderItems);
-
-      if (itemsErr) {
-        console.error('Order line items insert error:', itemsErr);
-      }
-
-      alert('🎉 Order placed successfully! The kitchen is preparing your meal.');
-      cart = [];
-      saveCart();
-      document.getElementById('checkoutForm').reset();
-      toggleCartDrawer(false);
-
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = `<span>Place Order</span><i class="fa-solid fa-arrow-right"></i>`;
     }
   </script>
 </body>
