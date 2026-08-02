@@ -85,15 +85,16 @@
             <thead class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
               <tr>
                 <th class="p-4">Customer</th>
+                <th class="p-4">Items Ordered</th>
                 <th class="p-4">Delivery Address</th>
-                <th class="p-4">Amount</th>
+                <th class="p-4">Total Amount</th>
                 <th class="p-4">Status</th>
                 <th class="p-4">Time</th>
                 <th class="p-4 text-center">Update Status</th>
               </tr>
             </thead>
             <tbody id="ordersTableBody" class="divide-y divide-slate-100 text-sm">
-              <tr><td colspan="6" class="p-8 text-center text-slate-400">Loading live orders...</td></tr>
+              <tr><td colspan="7" class="p-8 text-center text-slate-400">Loading live orders...</td></tr>
             </tbody>
           </table>
         </div>
@@ -188,12 +189,22 @@
     }
 
     async function fetchOrders() {
+      // Join orders with order_items and menu_items
       const { data: orders, error } = await supabaseClient
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          order_items (
+            quantity,
+            unit_price,
+            menu_items (
+              name
+            )
+          )
+        `)
         .order('created_at', { ascending: false });
 
-      if (error) return console.error(error);
+      if (error) return console.error('Error fetching orders:', error);
 
       // Calculate Stats
       const totalRev = orders.reduce((sum, o) => sum + Number(o.total_amount), 0);
@@ -206,37 +217,51 @@
 
       const tbody = document.getElementById('ordersTableBody');
       if (orders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">No orders received yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No orders received yet.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = orders.map(o => `
-        <tr class="hover:bg-slate-50">
-          <td class="p-4">
-            <div class="font-bold text-slate-900">${o.customer_name}</div>
-            <div class="text-xs text-slate-500"><i class="fa-solid fa-phone mr-1"></i>${o.customer_phone}</div>
-          </td>
-          <td class="p-4 max-w-xs text-slate-600 text-xs">${o.delivery_address}</td>
-          <td class="p-4 font-black text-red-700">₦${Number(o.total_amount).toLocaleString()}</td>
-          <td class="p-4">
-            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${
-              o.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' :
-              o.status === 'preparing' ? 'bg-amber-100 text-amber-800' :
-              o.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-800' :
-              'bg-red-100 text-red-800'
-            }">${o.status.replace(/_/g, ' ').toUpperCase()}</span>
-          </td>
-          <td class="p-4 text-xs text-slate-500">${new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-          <td class="p-4 text-center">
-            <select onchange="updateStatus('${o.id}', this.value)" class="border rounded-lg px-2 py-1 text-xs outline-none bg-white font-medium shadow-sm">
-              <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
-              <option value="preparing" ${o.status === 'preparing' ? 'selected' : ''}>Preparing</option>
-              <option value="out_for_delivery" ${o.status === 'out_for_delivery' ? 'selected' : ''}>Out for Delivery</option>
-              <option value="delivered" ${o.status === 'delivered' ? 'selected' : ''}>Delivered</option>
-            </select>
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = orders.map(o => {
+        // Format Items List
+        const itemsListHtml = o.order_items && o.order_items.length > 0
+          ? o.order_items.map(i => `
+              <div class="text-xs text-slate-700">
+                <span class="font-bold text-red-700">${i.quantity}x</span> ${i.menu_items ? i.menu_items.name : 'Meal'}
+              </div>
+            `).join('')
+          : '<span class="text-xs text-slate-400">No item details</span>';
+
+        return `
+          <tr class="hover:bg-slate-50 border-b border-slate-100">
+            <td class="p-4 align-top">
+              <div class="font-bold text-slate-900">${o.customer_name}</div>
+              <div class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-phone mr-1"></i>${o.customer_phone}</div>
+            </td>
+            <td class="p-4 align-top bg-amber-50/40 rounded-lg">
+              <div class="space-y-1">${itemsListHtml}</div>
+            </td>
+            <td class="p-4 align-top max-w-xs text-slate-600 text-xs">${o.delivery_address}</td>
+            <td class="p-4 align-top font-black text-red-700">₦${Number(o.total_amount).toLocaleString()}</td>
+            <td class="p-4 align-top">
+              <span class="px-2.5 py-1 rounded-full text-xs font-bold ${
+                o.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' :
+                o.status === 'preparing' ? 'bg-amber-100 text-amber-800' :
+                o.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-800' :
+                'bg-red-100 text-red-800'
+              }">${o.status.replace(/_/g, ' ').toUpperCase()}</span>
+            </td>
+            <td class="p-4 align-top text-xs text-slate-500">${new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+            <td class="p-4 align-top text-center">
+              <select onchange="updateStatus('${o.id}', this.value)" class="border rounded-lg px-2 py-1 text-xs outline-none bg-white font-medium shadow-sm">
+                <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
+                <option value="preparing" ${o.status === 'preparing' ? 'selected' : ''}>Preparing</option>
+                <option value="out_for_delivery" ${o.status === 'out_for_delivery' ? 'selected' : ''}>Out for Delivery</option>
+                <option value="delivered" ${o.status === 'delivered' ? 'selected' : ''}>Delivered</option>
+              </select>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     async function updateStatus(id, newStatus) {
