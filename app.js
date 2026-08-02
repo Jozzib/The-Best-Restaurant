@@ -2,8 +2,7 @@
 const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU'; 
 
-// !!! REPLACE WITH YOUR RESTAURANT'S WHATSAPP NUMBER (International format, no '+' sign) !!!
-// Example for Nigeria: '2348012345678'
+// !!! RESTAURANT WHATSAPP NUMBER !!!
 const RESTAURANT_WHATSAPP_NUMBER = '2348023467011'; 
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -110,7 +109,7 @@ function renderMenu() {
         </div>
         <div class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
           <span class="font-black text-red-700 text-lg">₦${Number(item.price).toLocaleString()}</span>
-          <button onclick="addToCart('${item.id}')" class="bg-red-700 hover:bg-red-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
+          <button onclick="addToCart('${item.id}')" class="bg-red-700 hover:bg-red-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm active:scale-95">
             Add to Cart
           </button>
         </div>
@@ -132,7 +131,12 @@ window.addToCart = function(itemId) {
   }
 
   updateCartUI();
-  toggleCart(true);
+
+  // Gentle pulse animation on Cart button at top right
+  if (cartBtn) {
+    cartBtn.classList.add('scale-110');
+    setTimeout(() => cartBtn.classList.remove('scale-110'), 200);
+  }
 };
 
 window.updateQuantity = function(itemId, change) {
@@ -243,14 +247,14 @@ Please confirm and start preparing!`;
   const encodedMessage = encodeURIComponent(whatsappMessage);
   const whatsappUrl = `https://wa.me/${RESTAURANT_WHATSAPP_NUMBER}?text=${encodedMessage}`;
 
-  alert(`Thank you, ${name}! Your order has been registered. Click OK to open WhatsApp and send your order directly to our kitchen!`);
-
-  // Open WhatsApp in new tab
-  window.open(whatsappUrl, '_blank');
+  alert(`Thank you, ${name}! Your order has been registered. Click OK to send your order directly to our kitchen on WhatsApp!`);
 
   // Reset local state
   cart = [];
   updateCartUI();
   toggleCart(false);
   checkoutForm.reset();
+
+  // Redirect cleanly to WhatsApp (bypasses browser popup blockers)
+  window.location.href = whatsappUrl;
 });
