@@ -2,7 +2,10 @@
 const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU'; 
 
-// Renamed variable to avoid window.supabase collision
+// !!! REPLACE WITH YOUR RESTAURANT'S WHATSAPP NUMBER (International format, no '+' sign) !!!
+// Example for Nigeria: '2348012345678'
+const RESTAURANT_WHATSAPP_NUMBER = '2348023467011'; 
+
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // State variables
@@ -75,7 +78,6 @@ function renderCategories() {
 window.filterCategory = function(catId) {
   selectedCategory = catId;
   
-  // Highlight active button
   document.querySelectorAll('.cat-btn').forEach(btn => {
     if (btn.getAttribute('data-id') === catId) {
       btn.className = "cat-btn px-4 py-2 bg-red-700 text-white rounded-full font-semibold text-sm transition whitespace-nowrap active-category";
@@ -99,16 +101,16 @@ function renderMenu() {
   }
 
   menuGrid.innerHTML = filtered.map(item => `
-    <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition flex flex-col justify-between">
+    <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition flex flex-col justify-between border border-gray-100">
       <img src="${item.image_url || 'https://via.placeholder.com/300'}" alt="${item.name}" class="w-full h-48 object-cover">
       <div class="p-4 flex-grow flex flex-col justify-between">
         <div>
           <h3 class="font-bold text-lg text-gray-800">${item.name}</h3>
-          <p class="text-gray-500 text-sm mt-1 mb-3">${item.description || ''}</p>
+          <p class="text-gray-500 text-sm mt-1 mb-3 line-clamp-2">${item.description || ''}</p>
         </div>
-        <div class="flex items-center justify-between mt-4 pt-3 border-t">
+        <div class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
           <span class="font-black text-red-700 text-lg">₦${Number(item.price).toLocaleString()}</span>
-          <button onclick="addToCart('${item.id}')" class="bg-red-700 hover:bg-red-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+          <button onclick="addToCart('${item.id}')" class="bg-red-700 hover:bg-red-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm">
             Add to Cart
           </button>
         </div>
@@ -220,7 +222,33 @@ checkoutForm.addEventListener('submit', async (e) => {
     console.error('Error adding order items:', itemsError);
   }
 
-  alert(`Thank you, ${name}! Your order has been placed successfully.`);
+  // 3. Format WhatsApp Message
+  let itemListText = cart.map(i => `• ${i.name} (x${i.quantity}) - ₦${(i.price * i.quantity).toLocaleString()}`).join('\n');
+  
+  const whatsappMessage = 
+`🚨 *NEW ORDER RECEIVED!* 🚨
+--------------------------------
+*Customer:* ${name}
+*Phone:* ${phone}
+*Delivery Address:* ${address}
+
+*Order Items:*
+${itemListText}
+
+--------------------------------
+*TOTAL AMOUNT:* ₦${totalAmount.toLocaleString()}
+--------------------------------
+Please confirm and start preparing!`;
+
+  const encodedMessage = encodeURIComponent(whatsappMessage);
+  const whatsappUrl = `https://wa.me/${RESTAURANT_WHATSAPP_NUMBER}?text=${encodedMessage}`;
+
+  alert(`Thank you, ${name}! Your order has been registered. Click OK to open WhatsApp and send your order directly to our kitchen!`);
+
+  // Open WhatsApp in new tab
+  window.open(whatsappUrl, '_blank');
+
+  // Reset local state
   cart = [];
   updateCartUI();
   toggleCart(false);
