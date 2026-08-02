@@ -139,7 +139,7 @@
 
   <script>
     const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let allMenuItems = [];
@@ -409,14 +409,18 @@
         return;
       }
 
-      // 2. Prepare Line Items with item_name explicitly stored
-      const orderItems = cart.map(item => ({
-        order_id: orderData.id,
-        menu_item_id: (typeof item.id === 'number' || (!isNaN(item.id) && !String(item.id).includes('_'))) ? Number(item.id) : null,
-        item_name: item.name,
-        quantity: item.quantity,
-        unit_price: item.price
-      }));
+      // 2. Prepare Line Items safely supporting UUID check
+      const orderItems = cart.map(item => {
+        const isUuid = typeof item.id === 'string' && item.id.length === 36 && item.id.includes('-');
+        
+        return {
+          order_id: orderData.id,
+          menu_item_id: isUuid ? item.id : null,
+          item_name: item.name,
+          quantity: item.quantity,
+          unit_price: item.price
+        };
+      });
 
       const { error: itemsErr } = await supabaseClient.from('order_items').insert(orderItems);
 
