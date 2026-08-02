@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard | The Best Restaurant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body class="bg-gray-100 font-sans min-h-screen">
+
+  <header class="bg-gray-900 text-white px-6 py-4 flex justify-between items-center shadow">
+    <div class="flex items-center space-x-3">
+      <span class="text-xl font-black text-red-500">The Best Restaurant</span>
+      <span class="bg-red-800 text-red-100 text-xs px-2 py-0.5 rounded font-bold">Kitchen Admin</span>
+    </div>
+    <button onclick="fetchOrders()" class="bg-red-700 hover:bg-red-800 text-white text-xs px-3 py-2 rounded font-semibold transition flex items-center gap-2">
+      <i class="fa-solid fa-rotate-right"></i> Refresh Orders
+    </button>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-black text-gray-800">Incoming Orders</h2>
+      <div id="orderCount" class="text-sm font-semibold text-gray-500">Loading...</div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="bg-white rounded-xl shadow overflow-x-auto">
+      <table class="w-full text-left text-sm border-collapse">
+        <thead class="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase text-xs">
+          <tr>
+            <th class="p-4">Customer Details</th>
+            <th class="p-4">Delivery Address</th>
+            <th class="p-4">Total</th>
+            <th class="p-4">Status</th>
+            <th class="p-4">Time</th>
+            <th class="p-4 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody id="adminOrdersTable" class="divide-y divide-gray-100">
+          <tr>
+            <td colspan="6" class="p-8 text-center text-gray-400">Fetching live orders...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    document.addEventListener('DOMContentLoaded', fetchOrders);
+
+    async function fetchOrders() {
+      const { data: orders, error } = await supabaseClient
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      const tableBody = document.getElementById('adminOrdersTable');
+      document.getElementById('orderCount').innerText = `${orders.length} Total Orders`;
+
+      if (orders.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">No orders received yet.</td></tr>`;
+        return;
+      }
+
+      tableBody.innerHTML = orders.map(o => `
+        <tr class="hover:bg-gray-50">
+          <td class="p-4">
+            <div class="font-bold text-gray-900">${o.customer_name}</div>
+            <div class="text-xs text-gray-500">${o.customer_phone}</div>
+          </td>
+          <td class="p-4 max-w-xs text-gray-700">${o.delivery_address}</td>
+          <td class="p-4 font-black text-red-700">₦${Number(o.total_amount).toLocaleString()}</td>
+          <td class="p-4">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${
+              o.status === 'delivered' ? 'bg-green-100 text-green-800' :
+              o.status === 'preparing' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-red-100 text-red-800'
+            }">${o.status.toUpperCase()}</span>
+          </td>
+          <td class="p-4 text-xs text-gray-500">${new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+          <td class="p-4 text-center">
+            <select onchange="updateOrderStatus('${o.id}', this.value)" class="border rounded px-2 py-1 text-xs outline-none bg-gray-50 font-medium">
+              <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
+              <option value="preparing" ${o.status === 'preparing' ? 'selected' : ''}>Preparing</option>
+              <option value="out_for_delivery" ${o.status === 'out_for_delivery' ? 'selected' : ''}>Out for Delivery</option>
+              <option value="delivered" ${o.status === 'delivered' ? 'selected' : ''}>Delivered</option>
+            </select>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function updateOrderStatus(orderId, newStatus) {
+      const { error } = await supabaseClient
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      if (error) {
+        alert('Failed to update status');
+      } else {
+        fetchOrders();
+      }
+    }
+  </script>
+</body>
+</html>
