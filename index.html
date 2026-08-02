@@ -388,7 +388,7 @@
       const delivery_address = document.getElementById('custAddress').value;
       const total_amount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-      // Insert Order
+      // 1. Insert Order
       const { data: orderData, error: orderErr } = await supabaseClient
         .from('orders')
         .insert([{
@@ -409,10 +409,11 @@
         return;
       }
 
-      // Prepare Line Items
+      // 2. Prepare Line Items with item_name explicitly stored
       const orderItems = cart.map(item => ({
         order_id: orderData.id,
-        menu_item_id: (typeof item.id === 'string' && (item.id.includes('_') || isNaN(item.id))) ? null : item.id,
+        menu_item_id: (typeof item.id === 'number' || (!isNaN(item.id) && !String(item.id).includes('_'))) ? Number(item.id) : null,
+        item_name: item.name,
         quantity: item.quantity,
         unit_price: item.price
       }));
