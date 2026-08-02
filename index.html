@@ -61,7 +61,7 @@
         Porridge
       </button>
       <div id="dynamicCategoryContainer" class="flex items-center space-x-2">
-        <!-- Extra dynamic Supabase categories load here -->
+        <!-- Dynamic categories loaded from database -->
       </div>
     </div>
 
@@ -139,7 +139,7 @@
 
   <script>
     const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6Ji0xMTk2MTk3fQ.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let allMenuItems = [];
@@ -149,33 +149,23 @@
     let cart = JSON.parse(localStorage.getItem('restaurant_cart')) || [];
     let itemQuantities = {};
 
-    // Standard Built-in Food Options across categories
     const FULL_BUILTIN_MENU = [
-      // SOUPS
       { id: 'soup_egusi', name: 'Egusi Soup', price: 2000, category_key: 'swallow_soup', sub_type: 'soup', description: 'Rich melon seed soup prepared with palm oil, fish & spices.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'soup_ogbono', name: 'Ogbono Soup', price: 2000, category_key: 'swallow_soup', sub_type: 'soup', description: 'Traditional draw soup made with ground wild mango seeds.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'soup_efo', name: 'Efo Riro (Vegetable Soup)', price: 2200, category_key: 'swallow_soup', sub_type: 'soup', description: 'Savory Yorùbá spinach stew enriched with locust beans.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'soup_okro', name: 'Okro Soup', price: 1800, category_key: 'swallow_soup', sub_type: 'soup', description: 'Fresh chopped okra cooked in rich spicy seafood broth.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'soup_bitterleaf', name: 'Bitter Leaf Soup (Ofe Onugbu)', price: 2200, category_key: 'swallow_soup', sub_type: 'soup', description: 'Hearty Eastern Nigerian soup made with washed bitter leaves.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-
-      // SWALLOWS
       { id: 'swallow_pounded_yam', name: 'Pounded Yam (1 Wrap)', price: 1000, category_key: 'swallow_soup', sub_type: 'swallow', description: 'Smooth, fluffy freshly pounded white yam wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'swallow_eba', name: 'Yellow Eba / Garri (1 Wrap)', price: 600, category_key: 'swallow_soup', sub_type: 'swallow', description: 'Steamed cassava meal prepared with yellow garri.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'swallow_amala', name: 'Amala (1 Wrap)', price: 700, category_key: 'swallow_soup', sub_type: 'swallow', description: 'Traditional black yam flour swallow wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'swallow_semo', name: 'Semovita (1 Wrap)', price: 800, category_key: 'swallow_soup', sub_type: 'swallow', description: 'Smooth, firm semolina flour swallow wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-
-      // PROTEINS
       { id: 'meat_goat', name: 'Goat Meat (1 Piece)', price: 1500, category_key: 'swallow_soup', sub_type: 'protein', description: 'Tender chunk of spiced goat meat.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'meat_beef', name: 'Fried / Stewed Beef (1 Piece)', price: 1000, category_key: 'swallow_soup', sub_type: 'protein', description: 'Succulent seasoned beef chunk.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'meat_chicken', name: 'Fried Chicken Quarter', price: 1800, category_key: 'swallow_soup', sub_type: 'protein', description: 'Crispy seasoned chicken piece.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-
-      // RICE DISHES
       { id: 'rice_jollof', name: 'Smokey Party Jollof Rice', price: 2500, category_key: 'rice_dishes', sub_type: 'rice', description: 'Authentic Nigerian party Jollof rice cooked over firewood flavor.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'rice_fried', name: 'Special Fried Rice', price: 2500, category_key: 'rice_dishes', sub_type: 'rice', description: 'Savory fried rice garnished with fresh sweet corn, green peas & liver.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'rice_ofada', name: 'Ofada Rice & Ayamase Sauce', price: 3000, category_key: 'rice_dishes', sub_type: 'rice', description: 'Local unpolished Ofada rice served with spicy green pepper Ayamase stew.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'rice_white_stew', name: 'White Rice & Beef Stew', price: 2200, category_key: 'rice_dishes', sub_type: 'rice', description: 'Steamed white rice served with rich tomato pepper stew.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-
-      // PORRIDGE
       { id: 'porridge_yam', name: 'Special Yam Porridge (Asaro)', price: 2500, category_key: 'porridge', sub_type: 'porridge', description: 'Flavorsome mashed yam porridge cooked with palm oil, crayfish & vegetables.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'porridge_beans', name: 'Beans Porridge (Ewa Aganyin)', price: 2000, category_key: 'porridge', sub_type: 'porridge', description: 'Soft cooked brown beans served with dark caramelized pepper sauce.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
       { id: 'porridge_plantain', name: 'Unripe Plantain Porridge', price: 2300, category_key: 'porridge', sub_type: 'porridge', description: 'Healthy plantain porridge cooked with dry fish, vegetable greens & palm oil.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true }
@@ -187,13 +177,11 @@
     });
 
     async function fetchCategoriesAndMenu() {
-      // Load Supabase Categories
       const { data: catData } = await supabaseClient.from('categories').select('*');
       dbCategories = catData || [];
 
-      // Render extra dynamic categories if present
       const extraCategories = dbCategories.filter(c => {
-        const name = c.name.toLowerCase();
+        const name = c.name ? c.name.toLowerCase() : '';
         return !name.includes('swallow') && !name.includes('soup') && !name.includes('rice') && !name.includes('porridge');
       });
 
@@ -204,11 +192,9 @@
         </button>
       `).join('');
 
-      // Load database Menu Items
       const { data: dbItems } = await supabaseClient.from('menu_items').select('*');
       let combined = [...(dbItems || [])];
 
-      // Merge fallback built-in items
       FULL_BUILTIN_MENU.forEach(bItem => {
         if (!combined.some(i => i.name.toLowerCase() === bItem.name.toLowerCase())) {
           combined.push(bItem);
@@ -223,13 +209,11 @@
       currentCategoryKey = catKey;
       currentSubFilter = 'all';
 
-      // Update button styling
       document.querySelectorAll('.category-btn').forEach(b => {
         b.className = 'category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition';
       });
       if (btn) btn.className = 'category-btn active bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow-sm transition';
 
-      // Show sub-filter bar on Swallow & Soups
       const isSwallowSoup = catKey === 'swallow_soup';
       document.getElementById('subCategoryBar').classList.toggle('hidden', !isSwallowSoup);
 
@@ -296,7 +280,6 @@
               <div class="flex items-center justify-between">
                 <span class="font-black text-red-700 text-base">₦${Number(item.price).toLocaleString()}</span>
                 
-                <!-- In-card Quantity Selector -->
                 <div class="flex items-center space-x-2 bg-slate-100 p-1 rounded-lg border border-slate-200">
                   <button onclick="adjustCardQty('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded font-bold text-slate-700 hover:bg-slate-200 text-xs shadow-xs">&minus;</button>
                   <span id="qty-${item.id}" class="text-xs font-bold text-slate-800 px-1">${qty}</span>
@@ -405,6 +388,7 @@
       const delivery_address = document.getElementById('custAddress').value;
       const total_amount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+      // Insert Order
       const { data: orderData, error: orderErr } = await supabaseClient
         .from('orders')
         .insert([{
@@ -418,16 +402,17 @@
         .single();
 
       if (orderErr) {
-        alert('Failed to submit order. Please try again.');
+        alert('Failed to submit order. Please check connection/permissions.');
         console.error(orderErr);
         submitBtn.disabled = false;
         submitBtn.innerHTML = `<span>Place Order</span><i class="fa-solid fa-arrow-right"></i>`;
         return;
       }
 
+      // Prepare Line Items
       const orderItems = cart.map(item => ({
         order_id: orderData.id,
-        menu_item_id: (typeof item.id === 'string' && item.id.includes('_')) ? null : item.id,
+        menu_item_id: (typeof item.id === 'string' && (item.id.includes('_') || isNaN(item.id))) ? null : item.id,
         quantity: item.quantity,
         unit_price: item.price
       }));
