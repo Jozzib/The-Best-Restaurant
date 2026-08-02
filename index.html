@@ -3,63 +3,109 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Best Restaurant | Online Food Ordering</title>
-  <!-- Tailwind CSS CDN for styling -->
+  <title>The Best Restaurant | Delicious Local Meals</title>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase JS Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- FontAwesome for Icons -->
+  <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+<body class="bg-gray-100 text-gray-900 font-sans min-h-screen flex flex-col">
 
-  <!-- Header / Navigation -->
-  <header class="bg-red-700 text-white shadow-md sticky top-0 z-50">
+  <!-- Top Announcement Bar -->
+  <div class="bg-red-900 text-white text-xs py-1.5 px-4 text-center font-medium">
+    🚀 Fast Delivery within 30-45 minutes! Call: +234 800 000 0000
+  </div>
+
+  <!-- Mama Cass Style Header -->
+  <header class="bg-white text-gray-800 shadow-sm sticky top-0 z-40 border-b border-gray-100">
     <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-      <div class="flex items-center space-x-2">
-        <i class="fa-solid font-bold text-yellow-400 text-2xl fa-utensils"></i>
-        <h1 class="text-2xl font-black tracking-wide">The Best Restaurant</h1>
+      <!-- Logo -->
+      <div class="flex items-center space-x-3 cursor-pointer">
+        <div class="w-10 h-10 bg-red-700 rounded-full flex items-center justify-center text-white font-black text-xl shadow">
+          B
+        </div>
+        <div>
+          <h1 class="text-xl font-extrabold tracking-tight text-red-700 leading-none">The Best</h1>
+          <span class="text-xs uppercase tracking-widest text-gray-500 font-bold">Restaurant</span>
+        </div>
       </div>
-      <button id="cartBtn" class="bg-yellow-500 hover:bg-yellow-400 text-red-950 font-bold px-4 py-2 rounded-full flex items-center space-x-2 transition">
-        <i class="fa-solid fa-cart-shopping"></i>
-        <span>Cart</span>
-        <span id="cartCount" class="bg-red-700 text-white text-xs px-2 py-0.5 rounded-full">0</span>
-      </button>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center space-x-3">
+        <button id="cartBtn" class="bg-red-700 hover:bg-red-800 text-white text-sm font-bold px-4 py-2 rounded-full flex items-center space-x-2 transition shadow">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span>My Cart</span>
+          <span id="cartCount" class="bg-white text-red-700 text-xs font-black px-2 py-0.5 rounded-full">0</span>
+        </button>
+      </div>
     </div>
   </header>
 
-  <!-- Hero Section -->
-  <section class="bg-red-800 text-white py-12 px-4 text-center">
-    <h2 class="text-3xl md:text-5xl font-extrabold mb-3">Delicious Meals Delivered Fast</h2>
-    <p class="text-yellow-200 text-lg">Freshly prepared local delicacies right to your doorstep.</p>
+  <!-- Mama Cass Hero Slider/Banner -->
+  <section class="bg-gradient-to-r from-red-800 to-red-600 text-white py-10 px-4 shadow-inner">
+    <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="text-center md:text-left">
+        <span class="bg-yellow-400 text-red-950 text-xs font-bold uppercase px-3 py-1 rounded-full mb-3 inline-block">Fresh & Hot</span>
+        <h2 class="text-3xl md:text-5xl font-black mb-2">Order Your Favorite Meals</h2>
+        <p class="text-red-100 text-sm md:text-base">Authentic African & Continental Dishes prepared daily.</p>
+      </div>
+      <div class="flex gap-2">
+        <div class="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10 text-center">
+          <span class="block text-2xl font-bold text-yellow-300">100%</span>
+          <span class="text-xs text-red-100">Fresh Ingredients</span>
+        </div>
+        <div class="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10 text-center">
+          <span class="block text-2xl font-bold text-yellow-300">Fast</span>
+          <span class="text-xs text-red-100">Doorstep Delivery</span>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <!-- Main Content -->
+  <!-- Main Food Ordering Section -->
   <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
-    <!-- Category Filter Bar -->
-    <div id="categoryContainer" class="flex overflow-x-auto gap-3 pb-4 mb-6 scrollbar-none">
-      <button class="bg-red-700 text-white font-semibold px-4 py-2 rounded-full whitespace-nowrap active-category" onclick="filterCategory('all')">All Items</button>
-      <!-- Categories will load dynamically here -->
+    <!-- Category Tabs Navigation -->
+    <div class="mb-8">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Explore Menu</h3>
+      <div id="categoryContainer" class="flex overflow-x-auto gap-2 pb-2 no-scrollbar">
+        <button class="bg-red-700 text-white font-semibold px-5 py-2 rounded-lg text-sm transition shadow-sm active-category" onclick="filterCategory('all')">All Items</button>
+        <!-- Categories load here -->
+      </div>
     </div>
 
-    <!-- Food Menu Grid -->
-    <div id="menuGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      <p class="text-gray-500 col-span-full text-center py-10">Loading delicious menu...</p>
+    <!-- Food Cards Grid -->
+    <div id="menuGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <p class="text-gray-400 col-span-full text-center py-10">Loading delicious menu...</p>
     </div>
   </main>
 
   <!-- Footer -->
-  <footer class="bg-gray-900 text-gray-400 py-6 text-center text-sm border-t border-gray-800">
-    <p>© 2026 The Best Restaurant. All Rights Reserved.</p>
+  <footer class="bg-gray-900 text-gray-400 py-8 text-center text-sm border-t border-gray-800">
+    <div class="max-w-6xl mx-auto px-4">
+      <p class="font-semibold text-white mb-1">The Best Restaurant</p>
+      <p class="text-xs text-gray-500 mb-4">Quality food, fast delivery, and unmatched taste.</p>
+      <p class="text-xs">© 2026 The Best Restaurant. All Rights Reserved.</p>
+    </div>
   </footer>
 
-  <!-- Shopping Cart Drawer (Hidden by default) -->
-  <div id="cartDrawer" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-end">
-    <div class="bg-white w-full max-w-md h-full flex flex-col justify-between p-6 overflow-y-auto">
+  <!-- Slide-out Shopping Cart Drawer -->
+  <div id="cartDrawer" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex justify-end transition-opacity">
+    <div class="bg-white w-full max-w-md h-full flex flex-col justify-between p-6 shadow-2xl overflow-y-auto">
       <div>
         <div class="flex justify-between items-center border-b pb-4 mb-4">
-          <h3 class="text-xl font-bold text-gray-900">Your Order</h3>
-          <button id="closeCartBtn" class="text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+          <h3 class="text-lg font-bold text-gray-900 flex items-center space-x-2">
+            <i class="fa-solid fa-bag-shopping text-red-700"></i>
+            <span>Your Order</span>
+          </h3>
+          <button id="closeCartBtn" class="text-gray-400 hover:text-red-600 text-2xl font-bold">&times;</button>
         </div>
         <div id="cartItems" class="space-y-4">
           <p class="text-gray-500 text-center py-6">Your cart is empty.</p>
@@ -67,25 +113,33 @@
       </div>
 
       <div id="cartFooter" class="border-t pt-4 mt-6 hidden">
-        <div class="flex justify-between font-bold text-lg mb-4">
-          <span>Total:</span>
-          <span id="cartTotal">₦0</span>
+        <div class="flex justify-between font-bold text-lg mb-4 text-gray-900">
+          <span>Total Amount:</span>
+          <span id="cartTotal" class="text-red-700 font-black">₦0</span>
         </div>
         
-        <!-- Checkout Form -->
+        <!-- Delivery Details Form -->
         <form id="checkoutForm" class="space-y-3">
-          <input type="text" id="custName" placeholder="Full Name" required class="w-full border rounded px-3 py-2 text-sm focus:outline-red-600" />
-          <input type="tel" id="custPhone" placeholder="Phone Number" required class="w-full border rounded px-3 py-2 text-sm focus:outline-red-600" />
-          <textarea id="custAddress" placeholder="Delivery Address" required class="w-full border rounded px-3 py-2 text-sm focus:outline-red-600" rows="2"></textarea>
-          <button type="submit" class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded shadow transition">
-            Place Order
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Full Name</label>
+            <input type="text" id="custName" placeholder="e.g. John Doe" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-600 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Phone Number</label>
+            <input type="tel" id="custPhone" placeholder="e.g. 08012345678" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-600 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Delivery Address</label>
+            <textarea id="custAddress" placeholder="Street address, building, floor..." required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-600 outline-none" rows="2"></textarea>
+          </div>
+          <button type="submit" class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded-lg shadow-lg transition">
+            Confirm & Place Order
           </button>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- App Script -->
   <script src="app.js"></script>
 </body>
 </html>
