@@ -39,21 +39,30 @@
     <div class="max-w-7xl mx-auto relative z-10 text-center sm:text-left">
       <span class="bg-red-700/30 text-red-400 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-red-500/30 inline-block mb-3">Fresh & Hot Delivery</span>
       <h2 class="text-2xl sm:text-4xl font-black mb-2 leading-tight">Delicious Meals Delivered Fast to Your Door</h2>
-      <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Choose from our freshly prepared signature dishes. Select your favorite soups, swallows, and combos, then order online!</p>
+      <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Choose your favorite soups, swallows, proteins, and drinks in any quantity, then order online!</p>
     </div>
   </header>
 
   <!-- Main Content Container -->
   <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 flex-1">
     
-    <!-- Category Filter Buttons -->
-    <div class="flex items-center space-x-2 overflow-x-auto pb-4 mb-6 scrollbar-none max-w-full">
-      <button onclick="filterCategory('all')" class="category-btn active bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow-sm transition">
+    <!-- Primary Category Filter Buttons -->
+    <div class="flex items-center space-x-2 overflow-x-auto pb-3 mb-2 scrollbar-none max-w-full">
+      <button onclick="filterCategory('all', this)" class="category-btn active bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow-sm transition">
         All Meals
       </button>
       <div id="categoryContainer" class="flex items-center space-x-2">
         <!-- Dynamic Categories Load Here -->
       </div>
+    </div>
+
+    <!-- Secondary Sub-filter for Soup & Swallow Sub-types -->
+    <div id="subCategoryBar" class="hidden flex items-center space-x-2 overflow-x-auto pb-4 mb-6">
+      <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">Filter Type:</span>
+      <button onclick="filterSubCategory('all', this)" class="sub-btn active bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition">All Items</button>
+      <button onclick="filterSubCategory('soup', this)" class="sub-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition">Soups Only</button>
+      <button onclick="filterSubCategory('swallow', this)" class="sub-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition">Swallows Only</button>
+      <button onclick="filterSubCategory('protein', this)" class="sub-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition">Proteins & Meat</button>
     </div>
 
     <!-- Menu Items Grid -->
@@ -64,54 +73,6 @@
       </div>
     </div>
   </main>
-
-  <!-- Modal: Soup & Swallow Customizer -->
-  <div id="comboModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 sm:p-6 max-h-[90vh] flex flex-col">
-      <div class="flex justify-between items-center border-b pb-3 mb-4">
-        <div>
-          <h3 id="comboTitle" class="font-bold text-slate-900 text-lg">Customize Soup & Swallow</h3>
-          <p class="text-xs text-slate-500">Select 1 Soup and 1 Swallow to complete your meal</p>
-        </div>
-        <button onclick="toggleComboModal(false)" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
-      </div>
-
-      <div class="flex-1 overflow-y-auto space-y-5 pr-1 text-sm">
-        <!-- Step 1: Choose Soup -->
-        <div>
-          <label class="block font-bold text-slate-900 mb-2 flex items-center gap-2">
-            <span class="w-5 h-5 bg-red-700 text-white text-xs rounded-full flex items-center justify-center font-black">1</span>
-            Select Your Soup <span class="text-xs text-red-700 font-normal">*Required</span>
-          </label>
-          <div id="soupOptions" class="grid grid-cols-2 gap-2">
-            <!-- Dynamic Soups -->
-          </div>
-        </div>
-
-        <!-- Step 2: Choose Swallow -->
-        <div>
-          <label class="block font-bold text-slate-900 mb-2 flex items-center gap-2">
-            <span class="w-5 h-5 bg-red-700 text-white text-xs rounded-full flex items-center justify-center font-black">2</span>
-            Select Your Swallow <span class="text-xs text-red-700 font-normal">*Required</span>
-          </label>
-          <div id="swallowOptions" class="grid grid-cols-2 gap-2">
-            <!-- Dynamic Swallows -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Footer & Action -->
-      <div class="border-t pt-4 mt-4 flex items-center justify-between">
-        <div>
-          <span class="text-xs text-slate-400 block font-semibold">Total Price</span>
-          <span id="comboModalPrice" class="text-lg font-black text-red-700">₦0</span>
-        </div>
-        <button onclick="confirmComboToCart()" class="bg-red-700 hover:bg-red-800 text-white font-bold text-xs px-5 py-3 rounded-xl transition shadow-md flex items-center gap-2">
-          <i class="fa-solid fa-basket-shopping"></i> Add Combo to Cart
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- Cart Slide-over Drawer -->
   <div id="cartDrawer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-end">
@@ -169,34 +130,40 @@
 
   <script>
     const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6Ji0xMTk2MTk3fQ.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let allMenuItems = [];
     let allCategories = [];
+    let currentFilterCategoryId = 'all';
+    let currentSubFilter = 'all';
     let cart = JSON.parse(localStorage.getItem('restaurant_cart')) || [];
-    let activeComboItem = null;
+    let itemQuantities = {}; // Tracks quantity selected on the card before adding to cart
 
-    // Preset options for Soups and Swallows selection
-    const SOUP_OPTIONS = [
-      'Egusi Soup',
-      'Ogbono Soup',
-      'Efo Riro (Vegetable)',
-      'Okro Soup',
-      'Bitter Leaf Soup',
-      'Banga Soup',
-      'Afang Soup',
-      'Edikang Ikong'
-    ];
+    // Default Fallback Menu Items for Soups & Swallows if DB lacks granular items
+    const DEFAULT_SWALLOW_SOUP_ITEMS = [
+      // SOUPS
+      { id: 'soup_egusi', name: 'Egusi Soup', price: 2000, type: 'soup', description: 'Rich melon seed soup prepared with palm oil and spices.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'soup_ogbono', name: 'Ogbono Soup', price: 2000, type: 'soup', description: 'Traditional draw soup made with ground wild mango seeds.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'soup_efo', name: 'Efo Riro (Vegetable Soup)', price: 2200, type: 'soup', description: 'Savory Yorùbá spinach stew enriched with locust beans and peppers.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'soup_okro', name: 'Okro Soup', price: 1800, type: 'soup', description: 'Fresh chopped okra cooked in rich spicy seafood broth.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'soup_banga', name: 'Banga Soup', price: 2500, type: 'soup', description: 'Delta style palm nut soup flavored with aromatic local herbs.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'soup_bitterleaf', name: 'Bitter Leaf Soup (Ofe Onugbu)', price: 2200, type: 'soup', description: 'Hearty Eastern Nigerian soup made with washed bitter leaves and cocoyam.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
 
-    const SWALLOW_OPTIONS = [
-      'Pounded Yam',
-      'Eba / Garri (Yellow)',
-      'Eba / Garri (White)',
-      'Semovita',
-      'Wheat Meal',
-      'Amala (Black)',
-      'Fufu'
+      // SWALLOWS
+      { id: 'swallow_pounded_yam', name: 'Pounded Yam (1 Wrap)', price: 1000, type: 'swallow', description: 'Smooth, fluffy freshly pounded white yam wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'swallow_eba_yellow', name: 'Eba / Garri (Yellow)', price: 600, type: 'swallow', description: 'Steamed cassava meal prepared with palm oil garri.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'swallow_eba_white', name: 'Eba / Garri (White)', price: 500, type: 'swallow', description: 'Classic steamed white cassava meal wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'swallow_amala', name: 'Amala (Black)', price: 700, type: 'swallow', description: 'Traditional yam flour swallow wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'swallow_semo', name: 'Semovita', price: 800, type: 'swallow', description: 'Smooth, firm semolina flour swallow wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'swallow_wheat', name: 'Wheat Meal', price: 800, type: 'swallow', description: 'Healthy whole wheat flour swallow wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+
+      // PROTEINS / MEAT
+      { id: 'meat_goat', name: 'Goat Meat (Asun / Peppered)', price: 1500, type: 'protein', description: 'Tender chunk of spiced goat meat.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'meat_beef', name: 'Fried / Stewed Beef', price: 1000, type: 'protein', description: 'Succulent seasoned beef chunk.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'meat_chicken', name: 'Fried Chicken Quarter', price: 1800, type: 'protein', description: 'Crispy seasoned chicken piece.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'meat_fish', name: 'Fried / Grilled Catfish Cut', price: 2000, type: 'protein', description: 'Fresh catfish cutlet stewed in pepper sauce.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
+      { id: 'meat_assorted', name: 'Assorted Meat (Shaki / Abodi)', price: 1200, type: 'protein', description: 'Tender mixed offal meat piece.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true }
     ];
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -212,7 +179,7 @@
       allCategories = data || [];
       const container = document.getElementById('categoryContainer');
       container.innerHTML = allCategories.map(cat => `
-        <button onclick="filterCategory('${cat.id}')" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
+        <button onclick="filterCategory('${cat.id}', this)" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
           ${cat.name}
         </button>
       `).join('');
@@ -220,43 +187,114 @@
 
     async function fetchMenuItems() {
       const { data, error } = await supabaseClient.from('menu_items').select('*').order('name');
-      if (error) {
-        document.getElementById('menuGrid').innerHTML = `<p class="col-span-full text-center text-red-600 text-sm">Failed to load menu items.</p>`;
-        return;
+      
+      let dbItems = data || [];
+
+      // Find the Soup & Swallow Category ID
+      const soupCat = allCategories.find(c => c.name.toLowerCase().includes('swallow') || c.name.toLowerCase().includes('soup'));
+      const soupCatId = soupCat ? soupCat.id : null;
+
+      // Augment database menu with granular options if necessary
+      const combinedItems = [...dbItems];
+
+      DEFAULT_SWALLOW_SOUP_ITEMS.forEach(item => {
+        if (!combinedItems.some(i => i.name.toLowerCase() === item.name.toLowerCase())) {
+          combinedItems.push({
+            ...item,
+            category_id: soupCatId || 'swallow_soup_cat'
+          });
+        }
+      });
+
+      allMenuItems = combinedItems;
+      applyFilters();
+    }
+
+    function filterCategory(catId, btn) {
+      currentFilterCategoryId = catId;
+      currentSubFilter = 'all';
+
+      // Button styling active state
+      document.querySelectorAll('.category-btn').forEach(b => {
+        b.className = 'category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition';
+      });
+      if (btn) btn.className = 'category-btn active bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow-sm transition';
+
+      // Check if current category is Soup & Swallow
+      const activeCat = allCategories.find(c => c.id === catId);
+      const isSoupSwallow = (activeCat && (activeCat.name.toLowerCase().includes('swallow') || activeCat.name.toLowerCase().includes('soup'))) || catId === 'swallow_soup_cat';
+
+      // Show/Hide Subcategory bar
+      document.getElementById('subCategoryBar').classList.toggle('hidden', !isSoupSwallow);
+
+      applyFilters();
+    }
+
+    function filterSubCategory(subType, btn) {
+      currentSubFilter = subType;
+      document.querySelectorAll('.sub-btn').forEach(b => {
+        b.className = 'sub-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition';
+      });
+      if (btn) btn.className = 'sub-btn active bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition';
+
+      applyFilters();
+    }
+
+    function applyFilters() {
+      let filtered = [...allMenuItems];
+
+      if (currentFilterCategoryId !== 'all') {
+        filtered = filtered.filter(i => i.category_id === currentFilterCategoryId || (currentFilterCategoryId === 'swallow_soup_cat' && i.type));
       }
 
-      allMenuItems = data || [];
-      renderMenuItems(allMenuItems);
+      if (currentSubFilter !== 'all') {
+        filtered = filtered.filter(i => i.type === currentSubFilter);
+      }
+
+      renderMenuItems(filtered);
     }
 
     function renderMenuItems(items) {
       const grid = document.getElementById('menuGrid');
       if (items.length === 0) {
-        grid.innerHTML = `<p class="col-span-full text-center text-slate-400 text-sm py-12">No menu items found.</p>`;
+        grid.innerHTML = `<p class="col-span-full text-center text-slate-400 text-sm py-12">No menu items found in this section.</p>`;
         return;
       }
 
       grid.innerHTML = items.map(item => {
-        // Detect if this item belongs to Soup & Swallow category
-        const catObj = allCategories.find(c => c.id === item.category_id);
-        const isSoupSwallowCategory = catObj && catObj.name.toLowerCase().includes('soup');
+        const qty = itemQuantities[item.id] || 1;
+        const badgeColor = item.type === 'soup' ? 'bg-amber-100 text-amber-800' :
+                           item.type === 'swallow' ? 'bg-orange-100 text-orange-800' :
+                           item.type === 'protein' ? 'bg-red-100 text-red-800' : 'hidden';
 
         return `
           <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between">
             <div>
-              <div class="relative h-44 w-full bg-slate-100 overflow-hidden">
-                <img src="${item.image_url || 'https://via.placeholder.com/300'}" alt="${item.name}" class="w-full h-full object-cover">
+              <div class="relative h-40 w-full bg-slate-100 overflow-hidden">
+                <img src="${item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'}" alt="${item.name}" class="w-full h-full object-cover">
+                ${item.type ? `<span class="absolute top-2 left-2 text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-sm ${badgeColor}">${item.type}</span>` : ''}
                 ${!item.is_available ? '<div class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center text-white text-xs font-bold uppercase tracking-wider">Out of Stock</div>' : ''}
               </div>
               <div class="p-4">
                 <h3 class="font-bold text-slate-900 text-sm mb-1">${item.name}</h3>
-                <p class="text-xs text-slate-500 line-clamp-2 mb-3">${item.description || 'Freshly prepared specialty dish.'}</p>
+                <p class="text-xs text-slate-500 line-clamp-2 mb-2">${item.description || 'Freshly prepared specialty meal.'}</p>
               </div>
             </div>
-            <div class="p-4 pt-0 flex items-center justify-between border-t border-slate-50 mt-auto">
-              <span class="font-black text-red-700 text-base">₦${Number(item.price).toLocaleString()}</span>
-              <button onclick="handleAddToCartClick('${item.id}', ${isSoupSwallowCategory})" ${!item.is_available ? 'disabled' : ''} class="bg-red-700 hover:bg-red-800 disabled:bg-slate-300 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-plus"></i> ${isSoupSwallowCategory ? 'Customize & Add' : 'Add'}
+
+            <div class="p-4 pt-0 space-y-3 border-t border-slate-50 mt-auto">
+              <div class="flex items-center justify-between">
+                <span class="font-black text-red-700 text-base">₦${Number(item.price).toLocaleString()}</span>
+                
+                <!-- Quantity Picker on Card -->
+                <div class="flex items-center space-x-2 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                  <button onclick="adjustCardQty('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded font-bold text-slate-700 hover:bg-slate-200 text-xs shadow-xs">&minus;</button>
+                  <span id="qty-${item.id}" class="text-xs font-bold text-slate-800 px-1">${qty}</span>
+                  <button onclick="adjustCardQty('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-white rounded font-bold text-slate-700 hover:bg-slate-200 text-xs shadow-xs">&plus;</button>
+                </div>
+              </div>
+
+              <button onclick="addSelectedToCart('${item.id}')" ${!item.is_available ? 'disabled' : ''} class="w-full bg-red-700 hover:bg-red-800 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-cart-plus"></i> Add to Order
               </button>
             </div>
           </div>
@@ -264,81 +302,31 @@
       }).join('');
     }
 
-    function filterCategory(catId) {
-      const buttons = document.querySelectorAll('.category-btn');
-      buttons.forEach(b => {
-        b.className = 'category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition';
-      });
-      event.target.className = 'category-btn active bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow-sm transition';
-
-      if (catId === 'all') {
-        renderMenuItems(allMenuItems);
-      } else {
-        renderMenuItems(allMenuItems.filter(i => i.category_id === catId));
-      }
+    function adjustCardQty(itemId, delta) {
+      if (!itemQuantities[itemId]) itemQuantities[itemId] = 1;
+      itemQuantities[itemId] = Math.max(1, itemQuantities[itemId] + delta);
+      
+      const qtyElem = document.getElementById(`qty-${itemId}`);
+      if (qtyElem) qtyElem.innerText = itemQuantities[itemId];
     }
 
-    function handleAddToCartClick(itemId, isSoupSwallow) {
+    function addSelectedToCart(itemId) {
       const item = allMenuItems.find(i => i.id === itemId);
       if (!item) return;
 
-      if (isSoupSwallow) {
-        openComboModal(item);
-      } else {
-        addToCart(item.id, item.name, Number(item.price));
-      }
-    }
+      const qty = itemQuantities[itemId] || 1;
 
-    function openComboModal(item) {
-      activeComboItem = item;
-      document.getElementById('comboTitle').innerText = item.name;
-      document.getElementById('comboModalPrice').innerText = `₦${Number(item.price).toLocaleString()}`;
-
-      // Render Soups Radio Options
-      const soupBox = document.getElementById('soupOptions');
-      soupBox.innerHTML = SOUP_OPTIONS.map((soup, idx) => `
-        <label class="border border-slate-200 p-2.5 rounded-xl cursor-pointer hover:border-red-600 transition flex items-center space-x-2 bg-slate-50">
-          <input type="radio" name="selectedSoup" value="${soup}" ${idx === 0 ? 'checked' : ''} class="accent-red-700" />
-          <span class="text-xs font-semibold text-slate-800">${soup}</span>
-        </label>
-      `).join('');
-
-      // Render Swallows Radio Options
-      const swallowBox = document.getElementById('swallowOptions');
-      swallowBox.innerHTML = SWALLOW_OPTIONS.map((swallow, idx) => `
-        <label class="border border-slate-200 p-2.5 rounded-xl cursor-pointer hover:border-red-600 transition flex items-center space-x-2 bg-slate-50">
-          <input type="radio" name="selectedSwallow" value="${swallow}" ${idx === 0 ? 'checked' : ''} class="accent-red-700" />
-          <span class="text-xs font-semibold text-slate-800">${swallow}</span>
-        </label>
-      `).join('');
-
-      toggleComboModal(true);
-    }
-
-    function toggleComboModal(open) {
-      document.getElementById('comboModal').classList.toggle('hidden', !open);
-    }
-
-    function confirmComboToCart() {
-      if (!activeComboItem) return;
-
-      const selectedSoup = document.querySelector('input[name="selectedSoup"]:checked')?.value || 'Egusi Soup';
-      const selectedSwallow = document.querySelector('input[name="selectedSwallow"]:checked')?.value || 'Pounded Yam';
-
-      const customName = `${activeComboItem.name} (${selectedSoup} + ${selectedSwallow})`;
-
-      addToCart(activeComboItem.id, customName, Number(activeComboItem.price));
-      toggleComboModal(false);
-      toggleCartDrawer(true);
-    }
-
-    function addToCart(itemId, name, price) {
-      const existing = cart.find(c => c.id === itemId && c.name === name);
+      const existing = cart.find(c => c.id === item.id);
       if (existing) {
-        existing.quantity += 1;
+        existing.quantity += qty;
       } else {
-        cart.push({ id: itemId, name: name, price: price, quantity: 1 });
+        cart.push({ id: item.id, name: item.name, price: Number(item.price), quantity: qty });
       }
+
+      // Reset card qty back to 1
+      itemQuantities[itemId] = 1;
+      const qtyElem = document.getElementById(`qty-${itemId}`);
+      if (qtyElem) qtyElem.innerText = 1;
 
       saveCart();
       toggleCartDrawer(true);
@@ -429,7 +417,7 @@
 
       const orderItems = cart.map(item => ({
         order_id: orderData.id,
-        menu_item_id: item.id,
+        menu_item_id: item.id.includes('_') ? null : item.id, // Handles custom swallow items
         quantity: item.quantity,
         unit_price: item.price
       }));
