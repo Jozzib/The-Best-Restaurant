@@ -13,6 +13,11 @@ let categories = [];
 let cart = [];
 let selectedCategory = 'all';
 
+// Customization Modal State
+let activeItemForCustomization = null;
+let modalMeatQty = 1;
+let modalExtraSwallowQty = 0;
+
 // DOM Elements
 const menuGrid = document.getElementById('menuGrid');
 const categoryContainer = document.getElementById('categoryContainer');
@@ -29,6 +34,15 @@ const checkoutForm = document.getElementById('checkoutForm');
 document.addEventListener('DOMContentLoaded', () => {
   fetchCategories();
   fetchMenuItems();
+
+  // Event listeners for Customization Modal inputs to recalculate totals
+  const meatTypeSelect = document.getElementById('selectMeatType');
+  const extraSwallowSelect = document.getElementById('selectExtraSwallowType');
+  const modalAddToCartBtn = document.getElementById('modalAddToCartBtn');
+
+  if (meatTypeSelect) meatTypeSelect.addEventListener('change', calculateModalTotal);
+  if (extraSwallowSelect) extraSwallowSelect.addEventListener('change', calculateModalTotal);
+  if (modalAddToCartBtn) modalAddToCartBtn.addEventListener('click', confirmCustomizationAndAddToCart);
 });
 
 // Fetch Categories from Supabase
@@ -109,7 +123,7 @@ function renderMenu() {
         </div>
         <div class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
           <span class="font-black text-red-700 text-lg">₦${Number(item.price).toLocaleString()}</span>
-          <button onclick="addToCart('${item.id}')" class="bg-red-700 hover:bg-red-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm active:scale-95">
+          <button onclick="handleAddToCartClick('${item.id}')" class="bg-red-700 hover:bg-red-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shadow-sm active:scale-95">
             Add to Cart
           </button>
         </div>
@@ -118,29 +132,129 @@ function renderMenu() {
   `).join('');
 }
 
-// Cart Functionality
-window.addToCart = function(itemId) {
+// Handle Add To Cart Button Click (Route to Modal or Direct Add)
+window.handleAddToCartClick = function(itemId) {
   const item = menuItems.find(i => i.id === itemId);
   if (!item) return;
 
-  const existing = cart.find(i => i.id === itemId);
+  const itemNameLower = item.name.toLowerCase();
+  const isCustomizable = itemNameLower.includes('soup') || itemNameLower.includes('swallow') || itemNameLower.includes('yam') || itemNameLower.includes('egusi') || itemNameLower.includes('amala') || itemNameLower.includes('eba') || itemNameLower.includes('semo');
+
+  if (isCustomizable) {
+    openCustomizeModal(item);
+  } else {
+    // Add simple item directly
+    addItemToCartArray({
+      id: item.id + '_std',
+      menu_item_id: item.id,
+      name: item.name,
+      price: Number(item.price),
+      details: '',
+      quantity: 1
+    });
+  }
+};
+
+// Open Customization Modal
+function openCustomizeModal(item) {
+  activeItemForCustomization = item;
+  modalMeatQty = 1;
+  modalExtraSwallowQty = 0;
+
+  document.getElementById('modalMealTitle').innerText = item.name;
+  document.getElementById('modalMealBasePrice').innerText = `Base Price: ₦${Number(item.price).toLocaleString()}`;
+  document.getElementById('modalMeatQty').innerText = modalMeatQty;
+  document.getElementById('modalExtraSwallowQty').innerText = modalExtraSwallowQty;
+
+  calculateModalTotal();
+  document.getElementById('customizeModal').classList.remove('hidden');
+}
+
+window.closeCustomizeModal = function() {
+  document.getElementById('customizeModal').classList.add('hidden');
+  activeItemForCustomization = null;
+};
+
+window.adjustModalQty = function(type, change) {
+  if (type === 'meat') {
+    modalMeatQty = Math.max(1, modalMeatQty + change);
+    document.getElementById('modalMeatQty').innerText = modalMeatQty;
+  } else if (type === 'extraSwallow') {
+    modalExtraSwallowQty = Math.max(0, modalExtraSwallowQty + change);
+    document.getElementById('modalExtraSwallowQty').innerText = modalExtraSwallowQty;
+  }
+  calculateModalTotal();
+};
+
+function calculateModalTotal() {
+  if (!activeItemForCustomization) return 0;
+
+  const basePrice = Number(activeItemForCustomization.price);
+  const meatSelect = document.getElementById('selectMeatType');
+  const meatUnitPrice = Number(meatSelect.options[meatSelect.selectedIndex].getAttribute('data-price') || 0);
+  const totalMeatPrice = meatUnitPrice * modalMeatQty;
+
+  const extraSwallowPrice = modalExtraSwallowQty * 500;
+  const calculatedTotal = basePrice + totalMeatPrice + extraSwallowPrice;
+
+  document.getElementById('modalCalculatedTotal').innerText = `₦${calculatedTotal.toLocaleString()}`;
+  return calculatedTotal;
+}
+
+function confirmCustomizationAndAddToCart() {
+  if (!activeItemForCustomization) return;
+
+  const swallow = document.getElementById('selectSwallow').value;
+  const soup = document.getElementById('selectSoup').value;
+  const meatSelect = document.getElementById('selectMeatType');
+  const meatType = meatSelect.value;
+  const extraSwallowType = document.getElementById('selectExtraSwallowType').value;
+
+  const calculatedPrice = calculateModalTotal();
+
+  let detailsArray = [
+    `Swallow: ${swallow}`,
+    `Soup: ${soup}`,
+    `Meat: ${modalMeatQty}x ${meatType}`
+  ];
+
+  if (modalExtraSwallowQty > 0) {
+    detailsArray.push(`Extra: ${modalExtraSwallowQty}x ${extraSwallowType}`);
+  }
+
+  const detailsString = detailsArray.join(' | ');
+  const cartItemId = `${activeItemForCustomization.id}_${swallow}_${soup}_${meatType}_${modalMeatQty}_${modalExtraSwallowQty}`;
+
+  addItemToCartArray({
+    id: cartItemId,
+    menu_item_id: activeItemForCustomization.id,
+    name: activeItemForCustomization.name,
+    price: calculatedPrice,
+    details: detailsString,
+    quantity: 1
+  });
+
+  closeCustomizeModal();
+}
+
+function addItemToCartArray(newItem) {
+  const existing = cart.find(i => i.id === newItem.id);
   if (existing) {
     existing.quantity += 1;
   } else {
-    cart.push({ ...item, quantity: 1 });
+    cart.push(newItem);
   }
 
   updateCartUI();
 
-  // Gentle pulse animation on Cart button at top right
   if (cartBtn) {
     cartBtn.classList.add('scale-110');
     setTimeout(() => cartBtn.classList.remove('scale-110'), 200);
   }
-};
+}
 
-window.updateQuantity = function(itemId, change) {
-  const index = cart.findIndex(i => i.id === itemId);
+window.updateQuantity = function(cartItemId, change) {
+  const index = cart.findIndex(i => i.id === cartItemId);
   if (index !== -1) {
     cart[index].quantity += change;
     if (cart[index].quantity <= 0) {
@@ -166,6 +280,7 @@ function updateCartUI() {
       <div class="flex items-center justify-between border-b pb-3">
         <div>
           <h4 class="font-bold text-sm text-gray-800">${item.name}</h4>
+          ${item.details ? `<p class="text-xs text-red-700 font-medium leading-tight my-0.5">${item.details}</p>` : ''}
           <p class="text-xs text-gray-500">₦${Number(item.price).toLocaleString()} x ${item.quantity}</p>
         </div>
         <div class="flex items-center space-x-2">
@@ -215,7 +330,7 @@ checkoutForm.addEventListener('submit', async (e) => {
   // 2. Insert Order Items
   const orderItemsData = cart.map(item => ({
     order_id: order.id,
-    menu_item_id: item.id,
+    menu_item_id: item.menu_item_id,
     quantity: item.quantity,
     unit_price: item.price
   }));
@@ -227,7 +342,13 @@ checkoutForm.addEventListener('submit', async (e) => {
   }
 
   // 3. Format WhatsApp Message
-  let itemListText = cart.map(i => `• ${i.name} (x${i.quantity}) - ₦${(i.price * i.quantity).toLocaleString()}`).join('\n');
+  let itemListText = cart.map(i => {
+    let text = `• *${i.name}* (x${i.quantity}) - ₦${(i.price * i.quantity).toLocaleString()}`;
+    if (i.details) {
+      text += `\n   └ _${i.details}_`;
+    }
+    return text;
+  }).join('\n');
   
   const whatsappMessage = 
 `🚨 *NEW ORDER RECEIVED!* 🚨
@@ -236,7 +357,7 @@ checkoutForm.addEventListener('submit', async (e) => {
 *Phone:* ${phone}
 *Delivery Address:* ${address}
 
-*Order Items:*
+*Order Breakdown:*
 ${itemListText}
 
 --------------------------------
@@ -247,7 +368,7 @@ Please confirm and start preparing!`;
   const encodedMessage = encodeURIComponent(whatsappMessage);
   const whatsappUrl = `https://wa.me/${RESTAURANT_WHATSAPP_NUMBER}?text=${encodedMessage}`;
 
-  alert(`Thank you, ${name}! Your order has been registered. Click OK to send your order directly to our kitchen on WhatsApp!`);
+  alert(`Thank you, ${name}! Your order has been placed. Click OK to send your full order details directly to our kitchen on WhatsApp!`);
 
   // Reset local state
   cart = [];
@@ -255,6 +376,6 @@ Please confirm and start preparing!`;
   toggleCart(false);
   checkoutForm.reset();
 
-  // Redirect cleanly to WhatsApp (bypasses browser popup blockers)
+  // Redirect to WhatsApp
   window.location.href = whatsappUrl;
 });
