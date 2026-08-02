@@ -2,9 +2,6 @@
 const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU'; 
 
-// !!! RESTAURANT WHATSAPP NUMBER !!!
-const RESTAURANT_WHATSAPP_NUMBER = '2348023467011'; 
-
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // State variables
@@ -305,7 +302,7 @@ function toggleCart(open) {
 cartBtn.addEventListener('click', () => toggleCart(true));
 closeCartBtn.addEventListener('click', () => toggleCart(false));
 
-// Handle Checkout Submission
+// Handle Checkout Submission (Direct DB Save - Secure & Direct)
 checkoutForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   
@@ -314,20 +311,30 @@ checkoutForm.addEventListener('submit', async (e) => {
   const address = document.getElementById('custAddress').value;
   const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  // 1. Insert Order into Supabase
+  if (cart.length === 0) {
+    alert('Your cart is empty!');
+    return;
+  }
+
+  // 1. Insert Main Order into Supabase
   const { data: order, error: orderError } = await supabaseClient
     .from('orders')
-    .insert([{ customer_name: name, customer_phone: phone, delivery_address: address, total_amount: totalAmount }])
+    .insert([{ 
+      customer_name: name, 
+      customer_phone: phone, 
+      delivery_address: address, 
+      total_amount: totalAmount 
+    }])
     .select()
     .single();
 
   if (orderError) {
     alert('Failed to place order. Please try again.');
-    console.error(orderError);
+    console.error('Order Error:', orderError);
     return;
   }
 
-  // 2. Insert Order Items
+  // 2. Insert Order Items into Supabase
   const orderItemsData = cart.map(item => ({
     order_id: order.id,
     menu_item_id: item.menu_item_id,
@@ -335,47 +342,20 @@ checkoutForm.addEventListener('submit', async (e) => {
     unit_price: item.price
   }));
 
-  const { error: itemsError } = await supabaseClient.from('order_items').insert(orderItemsData);
+  const { error: itemsError } = await supabaseClient
+    .from('order_items')
+    .insert(orderItemsData);
 
   if (itemsError) {
     console.error('Error adding order items:', itemsError);
   }
 
-  // 3. Format WhatsApp Message
-  let itemListText = cart.map(i => {
-    let text = `• *${i.name}* (x${i.quantity}) - ₦${(i.price * i.quantity).toLocaleString()}`;
-    if (i.details) {
-      text += `\n   └ _${i.details}_`;
-    }
-    return text;
-  }).join('\n');
-  
-  const whatsappMessage = 
-`🚨 *NEW ORDER RECEIVED!* 🚨
---------------------------------
-*Customer:* ${name}
-*Phone:* ${phone}
-*Delivery Address:* ${address}
+  // 3. Show On-Screen Confirmation Alert
+  alert(`🎉 Thank you, ${name}!\n\nYour order of ₦${totalAmount.toLocaleString()} has been placed successfully!\n\nOur kitchen has received your order and is preparing it right now.`);
 
-*Order Breakdown:*
-${itemListText}
-
---------------------------------
-*TOTAL AMOUNT:* ₦${totalAmount.toLocaleString()}
---------------------------------
-Please confirm and start preparing!`;
-
-  const encodedMessage = encodeURIComponent(whatsappMessage);
-  const whatsappUrl = `https://wa.me/${RESTAURANT_WHATSAPP_NUMBER}?text=${encodedMessage}`;
-
-  alert(`Thank you, ${name}! Your order has been placed. Click OK to send your full order details directly to our kitchen on WhatsApp!`);
-
-  // Reset local state
+  // 4. Reset Local Cart & UI
   cart = [];
   updateCartUI();
   toggleCart(false);
   checkoutForm.reset();
-
-  // Redirect to WhatsApp
-  window.location.href = whatsappUrl;
 });
