@@ -222,12 +222,12 @@
 
     let categories = [];
     let allOrdersStore = [];
+    let menuItemsLookup = {}; // Fallback lookup map for menu item names
     const silenceAlarmBtn = document.getElementById('silenceAlarmBtn');
     
     let audioCtx = null;
     let alarmInterval = null;
 
-    // Helper: Prevent XSS injection
     function escapeHtml(str) {
       if (!str) return '';
       return String(str)
@@ -304,12 +304,22 @@
       silenceAlarmBtn.classList.remove('flex');
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      await fetchMenuLookupMap();
       fetchOrders();
       fetchCategories();
       fetchMenuForAdmin();
       subscribeToLiveOrders();
     });
+
+    async function fetchMenuLookupMap() {
+      const { data } = await supabaseClient.from('menu_items').select('id, name');
+      if (data) {
+        data.forEach(m => {
+          menuItemsLookup[m.id] = m.name;
+        });
+      }
+    }
 
     function switchTab(tab) {
       if (tab === 'orders') {
@@ -328,6 +338,7 @@
     }
 
     function refreshData() {
+      fetchMenuLookupMap();
       fetchOrders();
       fetchMenuForAdmin();
     }
@@ -355,6 +366,7 @@
           order_items (
             quantity,
             unit_price,
+            menu_item_id,
             menu_items (
               name
             )
@@ -366,7 +378,6 @@
 
       allOrdersStore = orders || [];
 
-      // Calculate Daily Revenue (Today's Date Only)
       const todayString = new Date().toISOString().split('T')[0];
       const todayOrders = allOrdersStore.filter(o => o.created_at && o.created_at.startsWith(todayString));
       const dailyRevenue = todayOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
@@ -396,11 +407,23 @@
 
       tbody.innerHTML = orders.map(o => {
         const itemsListHtml = o.order_items && o.order_items.length > 0
-          ? o.order_items.map(i => `
-              <div class="text-xs text-slate-700 font-medium">
-                <span class="font-bold text-red-700">${i.quantity}x</span> ${escapeHtml(i.menu_items ? i.menu_items.name : 'Meal')}
-              </div>
-            `).join('')
+          ? o.order_items.map(i => {
+              // Intelligent name extraction with multiple fallbacks
+              let itemName = 'Meal Item';
+              if (i.menu_items && i.menu_items.name) {
+                itemName = i.menu_items.name;
+              } else if (i.menu_item_id && menuItemsLookup[i.menu_item_id]) {
+                itemName = menuItemsLookup[i.menu_item_id];
+              } else if (i.name) {
+                itemName = i.name;
+              }
+
+              return `
+                <div class="text-xs text-slate-700 font-medium">
+                  <span class="font-bold text-red-700">${i.quantity}x</span> ${escapeHtml(itemName)}
+                </div>
+              `;
+            }).join('')
           : '<span class="text-xs text-slate-400">No item details</span>';
 
         const isPending = o.status === 'pending';
@@ -504,21 +527,26 @@
       document.getElementById('monthlyModalSubtitle').innerText = `Total Revenue: ₦${monthTotal.toLocaleString()} | Total Orders: ${filtered.length}`;
 
       const content = document.getElementById('monthlyModalContent');
-      content.innerHTML = filtered.map(o => `
-        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex justify-between items-start text-xs">
-          <div>
-            <div class="font-bold text-slate-900">${escapeHtml(o.customer_name)} <span class="text-slate-400 font-normal">(${new Date(o.created_at).toLocaleDateString()})</span></div>
-            <div class="text-slate-500 mt-1">${escapeHtml(o.delivery_address)}</div>
-            <div class="text-red-700 font-semibold mt-1">
-              ${(o.order_items || []).map(i => `${i.quantity}x ${escapeHtml(i.menu_items ? i.menu_items.name : 'Item')}`).join(', ')}
+      content.innerHTML = filtered.map(o => {
+        const itemSummary = (o.order_items || []).map(i => {
+          let name = i.menu_items?.name || menuItemsLookup[i.menu_item_id] || 'Item';
+          return `${i.quantity}x ${escapeHtml(name)}`;
+        }).join(', ');
+
+        return `
+          <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex justify-between items-start text-xs">
+            <div>
+              <div class="font-bold text-slate-900">${escapeHtml(o.customer_name)} <span class="text-slate-400 font-normal">(${new Date(o.created_at).toLocaleDateString()})</span></div>
+              <div class="text-slate-500 mt-1">${escapeHtml(o.delivery_address)}</div>
+              <div class="text-red-700 font-semibold mt-1">${itemSummary}</div>
+            </div>
+            <div class="text-right">
+              <span class="font-black text-slate-900 text-sm block">₦${Number(o.total_amount || 0).toLocaleString()}</span>
+              <span class="uppercase font-bold text-[10px] text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 inline-block mt-1">${escapeHtml(o.status)}</span>
             </div>
           </div>
-          <div class="text-right">
-            <span class="font-black text-slate-900 text-sm block">₦${Number(o.total_amount || 0).toLocaleString()}</span>
-            <span class="uppercase font-bold text-[10px] text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 inline-block mt-1">${escapeHtml(o.status)}</span>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
       toggleMonthlyModal(true);
     }
@@ -614,6 +642,7 @@
         alert('New meal added successfully!');
         toggleNewItemModal(false);
         document.getElementById('addDishForm').reset();
+        fetchMenuLookupMap();
         fetchMenuForAdmin();
       }
     });
