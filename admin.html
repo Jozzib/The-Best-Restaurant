@@ -165,7 +165,7 @@
       <form id="addDishForm" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Dish Name</label>
-          <input type="text" id="dishName" required placeholder="e.g. Fried Fish Jollof" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
+          <input type="text" id="dishName" required placeholder="e.g. Soup & Swallow Combo" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Category</label>
@@ -218,7 +218,6 @@
     let allOrdersStore = [];
     const silenceAlarmBtn = document.getElementById('silenceAlarmBtn');
     
-    // Web Audio Synthesizer Setup
     let audioCtx = null;
     let alarmInterval = null;
 
@@ -375,7 +374,7 @@
       tbody.innerHTML = orders.map(o => {
         const itemsListHtml = o.order_items && o.order_items.length > 0
           ? o.order_items.map(i => `
-              <div class="text-xs text-slate-700">
+              <div class="text-xs text-slate-700 font-medium">
                 <span class="font-bold text-red-700">${i.quantity}x</span> ${i.menu_items ? i.menu_items.name : 'Meal'}
               </div>
             `).join('')
@@ -419,7 +418,6 @@
     function renderMonthlySalesArchives(orders) {
       const monthlyContainer = document.getElementById('monthlyGrid');
       
-      // Group orders by "YYYY-MM"
       const monthGroups = {};
 
       orders.forEach(o => {
