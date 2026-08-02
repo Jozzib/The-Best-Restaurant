@@ -3,57 +3,189 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard | The Best Restaurant</title>
+  <title>Admin Portal | The Best Restaurant</title>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
-<body class="bg-gray-100 font-sans min-h-screen">
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex">
 
-  <header class="bg-gray-900 text-white px-6 py-4 flex justify-between items-center shadow">
-    <div class="flex items-center space-x-3">
-      <span class="text-xl font-black text-red-500">The Best Restaurant</span>
-      <span class="bg-red-800 text-red-100 text-xs px-2 py-0.5 rounded font-bold">Kitchen Admin</span>
-    </div>
-    <button onclick="fetchOrders()" class="bg-red-700 hover:bg-red-800 text-white text-xs px-3 py-2 rounded font-semibold transition flex items-center gap-2">
-      <i class="fa-solid fa-rotate-right"></i> Refresh Orders
-    </button>
-  </header>
+  <!-- Sidebar Navigation -->
+  <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between p-4 sticky top-0 h-screen">
+    <div>
+      <div class="flex items-center space-x-3 px-2 py-4 border-b border-slate-800 mb-6">
+        <div class="w-9 h-9 bg-red-600 rounded-lg flex items-center justify-center text-white font-black text-lg">B</div>
+        <div>
+          <h1 class="text-white font-bold text-base leading-none">The Best Admin</h1>
+          <span class="text-xs text-slate-500 font-medium">Kitchen Operations</span>
+        </div>
+      </div>
 
-  <main class="max-w-7xl mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-black text-gray-800">Incoming Orders</h2>
-      <div id="orderCount" class="text-sm font-semibold text-gray-500">Loading...</div>
+      <nav class="space-y-1">
+        <button onclick="switchTab('orders')" id="tab-orders-btn" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-red-600 text-white font-semibold text-sm transition">
+          <i class="fa-solid fa-list-check w-5"></i>
+          <span>Live Orders</span>
+        </button>
+        <button onclick="switchTab('menu')" id="tab-menu-btn" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-sm transition">
+          <i class="fa-solid fa-utensils w-5"></i>
+          <span>Menu Manager</span>
+        </button>
+      </nav>
     </div>
 
-    <!-- Orders Table -->
-    <div class="bg-white rounded-xl shadow overflow-x-auto">
-      <table class="w-full text-left text-sm border-collapse">
-        <thead class="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase text-xs">
-          <tr>
-            <th class="p-4">Customer Details</th>
-            <th class="p-4">Delivery Address</th>
-            <th class="p-4">Total</th>
-            <th class="p-4">Status</th>
-            <th class="p-4">Time</th>
-            <th class="p-4 text-center">Action</th>
-          </tr>
-        </thead>
-        <tbody id="adminOrdersTable" class="divide-y divide-gray-100">
-          <tr>
-            <td colspan="6" class="p-8 text-center text-gray-400">Fetching live orders...</td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="p-3 bg-slate-800/50 rounded-lg text-xs text-slate-400">
+      <div class="font-bold text-slate-200 mb-1">Status: Online</div>
+      <p>Auto-connected to Supabase live database.</p>
     </div>
-  </main>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col min-w-0">
+    <!-- Top Header -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-30">
+      <div class="flex items-center space-x-3">
+        <h2 id="pageTitle" class="text-xl font-bold text-slate-900">Live Orders Dashboard</h2>
+      </div>
+      <div class="flex items-center space-x-3">
+        <button onclick="refreshData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-2">
+          <i class="fa-solid fa-rotate-right"></i> Refresh
+        </button>
+        <a href="index.html" target="_blank" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-3 py-2 rounded-lg transition">
+          View Live Website <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i>
+        </a>
+      </div>
+    </header>
+
+    <main class="p-6 max-w-7xl w-full mx-auto flex-1">
+      
+      <!-- ORDERS TAB -->
+      <div id="tab-orders">
+        <!-- KPI Analytics Stats -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</span>
+            <div id="statRevenue" class="text-2xl font-black text-slate-900 mt-1">₦0</div>
+          </div>
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Orders</span>
+            <div id="statPending" class="text-2xl font-black text-amber-600 mt-1">0</div>
+          </div>
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Delivered Orders</span>
+            <div id="statCompleted" class="text-2xl font-black text-emerald-600 mt-1">0</div>
+          </div>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
+              <tr>
+                <th class="p-4">Customer</th>
+                <th class="p-4">Delivery Address</th>
+                <th class="p-4">Amount</th>
+                <th class="p-4">Status</th>
+                <th class="p-4">Time</th>
+                <th class="p-4 text-center">Update Status</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody" class="divide-y divide-slate-100 text-sm">
+              <tr><td colspan="6" class="p-8 text-center text-slate-400">Loading live orders...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- MENU MANAGER TAB -->
+      <div id="tab-menu" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-lg font-bold text-slate-900">Restaurant Menu Items</h3>
+          <button onclick="toggleNewItemModal(true)" class="bg-red-700 hover:bg-red-800 text-white text-sm font-bold px-4 py-2 rounded-lg transition flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> Add New Meal
+          </button>
+        </div>
+
+        <div id="menuItemsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <p class="text-slate-400 col-span-full text-center py-10">Loading menu manager...</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal: Add New Menu Item -->
+  <div id="newItemModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+      <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <h3 class="text-lg font-bold text-slate-900">Add New Dish</h3>
+        <button onclick="toggleNewItemModal(false)" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <form id="addDishForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Dish Name</label>
+          <input type="text" id="dishName" required placeholder="e.g. Fried Fish Jollof" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Category</label>
+          <select id="dishCategory" required class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600 bg-white">
+            <option value="">Select Category</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Price (₦)</label>
+          <input type="number" id="dishPrice" required placeholder="3500" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Image URL</label>
+          <input type="url" id="dishImage" placeholder="https://..." class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Description</label>
+          <textarea id="dishDesc" rows="2" placeholder="Brief description..." class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-600"></textarea>
+        </div>
+        <button type="submit" class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-2.5 rounded-lg shadow transition">
+          Save Dish to Menu
+        </button>
+      </form>
+    </div>
+  </div>
 
   <script>
     const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    document.addEventListener('DOMContentLoaded', fetchOrders);
+    let categories = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchOrders();
+      fetchCategories();
+      fetchMenuForAdmin();
+    });
+
+    function switchTab(tab) {
+      if (tab === 'orders') {
+        document.getElementById('tab-orders').classList.remove('hidden');
+        document.getElementById('tab-menu').classList.add('hidden');
+        document.getElementById('tab-orders-btn').className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-red-600 text-white font-semibold text-sm transition';
+        document.getElementById('tab-menu-btn').className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-sm transition';
+        document.getElementById('pageTitle').innerText = 'Live Orders Dashboard';
+      } else {
+        document.getElementById('tab-orders').classList.add('hidden');
+        document.getElementById('tab-menu').classList.remove('hidden');
+        document.getElementById('tab-menu-btn').className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-red-600 text-white font-semibold text-sm transition';
+        document.getElementById('tab-orders-btn').className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-sm transition';
+        document.getElementById('pageTitle').innerText = 'Menu Management';
+      }
+    }
+
+    function refreshData() {
+      fetchOrders();
+      fetchMenuForAdmin();
+    }
 
     async function fetchOrders() {
       const { data: orders, error } = await supabaseClient
@@ -61,37 +193,42 @@
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error(error);
-        return;
-      }
+      if (error) return console.error(error);
 
-      const tableBody = document.getElementById('adminOrdersTable');
-      document.getElementById('orderCount').innerText = `${orders.length} Total Orders`;
+      // Calculate Stats
+      const totalRev = orders.reduce((sum, o) => sum + Number(o.total_amount), 0);
+      const pendingCount = orders.filter(o => o.status === 'pending' || o.status === 'preparing').length;
+      const completedCount = orders.filter(o => o.status === 'delivered').length;
 
+      document.getElementById('statRevenue').innerText = `₦${totalRev.toLocaleString()}`;
+      document.getElementById('statPending').innerText = pendingCount;
+      document.getElementById('statCompleted').innerText = completedCount;
+
+      const tbody = document.getElementById('ordersTableBody');
       if (orders.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">No orders received yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">No orders received yet.</td></tr>`;
         return;
       }
 
-      tableBody.innerHTML = orders.map(o => `
-        <tr class="hover:bg-gray-50">
+      tbody.innerHTML = orders.map(o => `
+        <tr class="hover:bg-slate-50">
           <td class="p-4">
-            <div class="font-bold text-gray-900">${o.customer_name}</div>
-            <div class="text-xs text-gray-500">${o.customer_phone}</div>
+            <div class="font-bold text-slate-900">${o.customer_name}</div>
+            <div class="text-xs text-slate-500"><i class="fa-solid fa-phone mr-1"></i>${o.customer_phone}</div>
           </td>
-          <td class="p-4 max-w-xs text-gray-700">${o.delivery_address}</td>
+          <td class="p-4 max-w-xs text-slate-600 text-xs">${o.delivery_address}</td>
           <td class="p-4 font-black text-red-700">₦${Number(o.total_amount).toLocaleString()}</td>
           <td class="p-4">
             <span class="px-2.5 py-1 rounded-full text-xs font-bold ${
-              o.status === 'delivered' ? 'bg-green-100 text-green-800' :
-              o.status === 'preparing' ? 'bg-yellow-100 text-yellow-800' :
+              o.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' :
+              o.status === 'preparing' ? 'bg-amber-100 text-amber-800' :
+              o.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-800' :
               'bg-red-100 text-red-800'
-            }">${o.status.toUpperCase()}</span>
+            }">${o.status.replace(/_/g, ' ').toUpperCase()}</span>
           </td>
-          <td class="p-4 text-xs text-gray-500">${new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+          <td class="p-4 text-xs text-slate-500">${new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
           <td class="p-4 text-center">
-            <select onchange="updateOrderStatus('${o.id}', this.value)" class="border rounded px-2 py-1 text-xs outline-none bg-gray-50 font-medium">
+            <select onchange="updateStatus('${o.id}', this.value)" class="border rounded-lg px-2 py-1 text-xs outline-none bg-white font-medium shadow-sm">
               <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
               <option value="preparing" ${o.status === 'preparing' ? 'selected' : ''}>Preparing</option>
               <option value="out_for_delivery" ${o.status === 'out_for_delivery' ? 'selected' : ''}>Out for Delivery</option>
@@ -102,18 +239,81 @@
       `).join('');
     }
 
-    async function updateOrderStatus(orderId, newStatus) {
-      const { error } = await supabaseClient
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId);
+    async function updateStatus(id, newStatus) {
+      await supabaseClient.from('orders').update({ status: newStatus }).eq('id', id);
+      fetchOrders();
+    }
+
+    async function fetchCategories() {
+      const { data } = await supabaseClient.from('categories').select('*');
+      categories = data || [];
+      const select = document.getElementById('dishCategory');
+      select.innerHTML = '<option value="">Select Category</option>' + 
+        categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    }
+
+    async function fetchMenuForAdmin() {
+      const { data: items } = await supabaseClient.from('menu_items').select('*').order('created_at', { ascending: false });
+      const grid = document.getElementById('menuItemsGrid');
+
+      if (!items || items.length === 0) {
+        grid.innerHTML = `<p class="text-slate-400 col-span-full text-center py-10">No items found.</p>`;
+        return;
+      }
+
+      grid.innerHTML = items.map(item => `
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col justify-between">
+          <img src="${item.image_url || 'https://via.placeholder.com/300'}" class="w-full h-36 object-cover">
+          <div class="p-4 flex-grow">
+            <div class="flex justify-between items-start mb-2">
+              <h4 class="font-bold text-slate-900 text-sm">${item.name}</h4>
+              <span class="font-black text-red-700 text-sm">₦${Number(item.price).toLocaleString()}</span>
+            </div>
+            <p class="text-xs text-slate-500">${item.description || 'No description'}</p>
+          </div>
+          <div class="p-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+            <span class="text-xs font-semibold ${item.is_available ? 'text-emerald-600' : 'text-red-600'}">
+              ${item.is_available ? 'In Stock' : 'Out of Stock'}
+            </span>
+            <button onclick="toggleAvailability('${item.id}', ${!item.is_available})" class="text-xs px-2.5 py-1 rounded bg-white border border-slate-300 font-semibold hover:bg-slate-100 transition">
+              Toggle Stock
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function toggleAvailability(id, currentStatus) {
+      await supabaseClient.from('menu_items').update({ is_available: currentStatus }).eq('id', id);
+      fetchMenuForAdmin();
+    }
+
+    function toggleNewItemModal(open) {
+      document.getElementById('newItemModal').classList.toggle('hidden', !open);
+    }
+
+    document.getElementById('addDishForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('dishName').value;
+      const category_id = document.getElementById('dishCategory').value;
+      const price = document.getElementById('dishPrice').value;
+      const image_url = document.getElementById('dishImage').value;
+      const description = document.getElementById('dishDesc').value;
+
+      const { error } = await supabaseClient.from('menu_items').insert([{
+        name, category_id, price, image_url, description, is_available: true
+      }]);
 
       if (error) {
-        alert('Failed to update status');
+        alert('Failed to add meal.');
+        console.error(error);
       } else {
-        fetchOrders();
+        alert('New meal added successfully!');
+        toggleNewItemModal(false);
+        document.getElementById('addDishForm').reset();
+        fetchMenuForAdmin();
       }
-    }
+    });
   </script>
 </body>
 </html>
