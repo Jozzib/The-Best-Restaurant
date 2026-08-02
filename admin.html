@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="overflow-x-hidden">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Admin Portal | The Best Restaurant</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -11,32 +11,32 @@
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex">
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col md:flex-row overflow-x-hidden w-full max-w-full">
 
   <!-- Sidebar Navigation -->
-  <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between p-4 sticky top-0 h-screen">
-    <div>
-      <div class="flex items-center space-x-3 px-2 py-4 border-b border-slate-800 mb-6">
+  <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex-none p-4 sticky top-0 z-40">
+    <div class="flex items-center justify-between md:block">
+      <div class="flex items-center space-x-3 md:pb-4 md:border-b md:border-slate-800 md:mb-6">
         <div class="w-9 h-9 bg-red-600 rounded-lg flex items-center justify-center text-white font-black text-lg">B</div>
         <div>
           <h1 class="text-white font-bold text-base leading-none">The Best Admin</h1>
-          <span class="text-xs text-slate-500 font-medium">Kitchen Operations</span>
+          <span class="text-xs text-slate-500 font-medium hidden sm:inline">Kitchen Operations</span>
         </div>
       </div>
 
-      <nav class="space-y-1">
-        <button onclick="switchTab('orders')" id="tab-orders-btn" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-red-600 text-white font-semibold text-sm transition">
-          <i class="fa-solid fa-list-check w-5"></i>
+      <nav class="flex space-x-2 md:space-x-0 md:space-y-1 md:flex-col">
+        <button onclick="switchTab('orders')" id="tab-orders-btn" class="flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg bg-red-600 text-white font-semibold text-xs md:text-sm transition">
+          <i class="fa-solid fa-list-check w-4"></i>
           <span>Live Orders</span>
         </button>
-        <button onclick="switchTab('menu')" id="tab-menu-btn" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-sm transition">
-          <i class="fa-solid fa-utensils w-5"></i>
+        <button onclick="switchTab('menu')" id="tab-menu-btn" class="flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition">
+          <i class="fa-solid fa-utensils w-4"></i>
           <span>Menu Manager</span>
         </button>
       </nav>
     </div>
 
-    <div class="p-3 bg-slate-800/50 rounded-lg text-xs text-slate-400">
+    <div class="hidden md:block p-3 bg-slate-800/50 rounded-lg text-xs text-slate-400 mt-6">
       <div class="font-bold text-slate-200 mb-1 flex items-center gap-2">
         <span class="relative flex h-2 w-2">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -49,64 +49,64 @@
   </aside>
 
   <!-- Main Content Area -->
-  <div class="flex-1 flex flex-col min-w-0">
+  <div class="flex-1 flex flex-col min-w-0 w-full overflow-x-hidden">
     <!-- Top Header -->
-    <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-30">
+    <header class="bg-white border-b border-slate-200 px-4 md:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sticky top-0 z-30">
       <div class="flex items-center space-x-3">
-        <h2 id="pageTitle" class="text-xl font-bold text-slate-900">Live Orders Dashboard</h2>
+        <h2 id="pageTitle" class="text-lg md:text-xl font-bold text-slate-900">Live Orders Dashboard</h2>
       </div>
-      <div class="flex items-center space-x-3">
-        <!-- Silence Alarm Control Button -->
-        <button id="silenceAlarmBtn" onclick="stopAlarm()" class="hidden bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition items-center gap-2 animate-bounce">
-          <i class="fa-solid fa-bell-slash"></i> Silence Alarm
+      
+      <!-- Action Controls -->
+      <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <button id="silenceAlarmBtn" onclick="stopAlarm()" class="hidden bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition items-center gap-1.5 animate-bounce">
+          <i class="fa-solid fa-bell-slash"></i> Silence
         </button>
         
-        <!-- Enable Audio / Test Sound Button -->
-        <button onclick="testAlarm()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-2">
+        <button onclick="testAlarm()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5">
           <i class="fa-solid fa-volume-high"></i> Test Sound
         </button>
 
-        <button onclick="refreshData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-2">
+        <button onclick="refreshData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5">
           <i class="fa-solid fa-rotate-right"></i> Refresh
         </button>
-        <a href="index.html" target="_blank" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-3 py-2 rounded-lg transition">
-          View Live Website <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i>
+        <a href="index.html" target="_blank" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-1 ml-auto sm:ml-0">
+          Live Site <i class="fa-solid fa-arrow-up-right-from-square ml-0.5"></i>
         </a>
       </div>
     </header>
 
-    <main class="p-6 max-w-7xl w-full mx-auto flex-1">
+    <main class="p-4 md:p-6 max-w-7xl w-full mx-auto flex-1 overflow-x-hidden">
       
       <!-- ORDERS TAB -->
-      <div id="tab-orders">
+      <div id="tab-orders" class="w-full">
         <!-- KPI Analytics Stats -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-6">
+          <div class="bg-white p-4 md:p-5 rounded-xl border border-slate-200 shadow-sm">
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</span>
-            <div id="statRevenue" class="text-2xl font-black text-slate-900 mt-1">₦0</div>
+            <div id="statRevenue" class="text-xl md:text-2xl font-black text-slate-900 mt-1">₦0</div>
           </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="bg-white p-4 md:p-5 rounded-xl border border-slate-200 shadow-sm">
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Orders</span>
-            <div id="statPending" class="text-2xl font-black text-amber-600 mt-1">0</div>
+            <div id="statPending" class="text-xl md:text-2xl font-black text-amber-600 mt-1">0</div>
           </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="bg-white p-4 md:p-5 rounded-xl border border-slate-200 shadow-sm">
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Delivered Orders</span>
-            <div id="statCompleted" class="text-2xl font-black text-emerald-600 mt-1">0</div>
+            <div id="statCompleted" class="text-xl md:text-2xl font-black text-emerald-600 mt-1">0</div>
           </div>
         </div>
 
-        <!-- Orders Table -->
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <table class="w-full text-left border-collapse">
+        <!-- Table Wrapper -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto w-full">
+          <table class="w-full min-w-[700px] text-left border-collapse">
             <thead class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
               <tr>
-                <th class="p-4">Customer</th>
-                <th class="p-4">Items Ordered</th>
-                <th class="p-4">Delivery Address</th>
-                <th class="p-4">Total Amount</th>
-                <th class="p-4">Status</th>
-                <th class="p-4">Time</th>
-                <th class="p-4 text-center">Update Status</th>
+                <th class="p-3 md:p-4">Customer</th>
+                <th class="p-3 md:p-4">Items Ordered</th>
+                <th class="p-3 md:p-4">Delivery Address</th>
+                <th class="p-3 md:p-4">Total Amount</th>
+                <th class="p-3 md:p-4">Status</th>
+                <th class="p-3 md:p-4">Time</th>
+                <th class="p-3 md:p-4 text-center">Update Status</th>
               </tr>
             </thead>
             <tbody id="ordersTableBody" class="divide-y divide-slate-100 text-sm">
@@ -117,15 +117,15 @@
       </div>
 
       <!-- MENU MANAGER TAB -->
-      <div id="tab-menu" class="hidden">
+      <div id="tab-menu" class="hidden w-full">
         <div class="flex justify-between items-center mb-6">
-          <h3 class="text-lg font-bold text-slate-900">Restaurant Menu Items</h3>
-          <button onclick="toggleNewItemModal(true)" class="bg-red-700 hover:bg-red-800 text-white text-sm font-bold px-4 py-2 rounded-lg transition flex items-center gap-2">
+          <h3 class="text-base md:text-lg font-bold text-slate-900">Restaurant Menu Items</h3>
+          <button onclick="toggleNewItemModal(true)" class="bg-red-700 hover:bg-red-800 text-white text-xs md:text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Add New Meal
           </button>
         </div>
 
-        <div id="menuItemsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div id="menuItemsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
           <p class="text-slate-400 col-span-full text-center py-10">Loading menu manager...</p>
         </div>
       </div>
@@ -135,9 +135,9 @@
 
   <!-- Modal: Add New Menu Item -->
   <div id="newItemModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-5 md:p-6 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-3 mb-4">
-        <h3 class="text-lg font-bold text-slate-900">Add New Dish</h3>
+        <h3 class="text-base md:text-lg font-bold text-slate-900">Add New Dish</h3>
         <button onclick="toggleNewItemModal(false)" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
       </div>
       <form id="addDishForm" class="space-y-4">
@@ -178,7 +178,7 @@
     let categories = [];
     const silenceAlarmBtn = document.getElementById('silenceAlarmBtn');
     
-    // Web Audio Context Synthesizer setup
+    // Web Audio Synthesizer Setup
     let audioCtx = null;
     let alarmInterval = null;
 
@@ -191,7 +191,6 @@
       }
     }
 
-    // Unlock audio context on first user click anywhere on screen
     document.addEventListener('click', () => {
       initAudio();
     }, { once: true });
@@ -203,8 +202,8 @@
         const gain = audioCtx.createGain();
         
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // High pitch pitch alarm
-        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3); // Drop pitch
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3);
         
         gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
@@ -215,7 +214,7 @@
         osc.start();
         osc.stop(audioCtx.currentTime + 0.3);
       } catch (e) {
-        console.error('Synthesizer audio error:', e);
+        console.error('Audio error:', e);
       }
     }
 
@@ -226,7 +225,6 @@
 
       if (alarmInterval) clearInterval(alarmInterval);
       
-      // Ring alarm synthesizer tone repeatedly every 800ms
       playBeepTone();
       alarmInterval = setInterval(playBeepTone, 800);
     }
@@ -255,14 +253,14 @@
       if (tab === 'orders') {
         document.getElementById('tab-orders').classList.remove('hidden');
         document.getElementById('tab-menu').classList.add('hidden');
-        document.getElementById('tab-orders-btn').className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-red-600 text-white font-semibold text-sm transition';
-        document.getElementById('tab-menu-btn').className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-sm transition';
+        document.getElementById('tab-orders-btn').className = 'flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg bg-red-600 text-white font-semibold text-xs md:text-sm transition';
+        document.getElementById('tab-menu-btn').className = 'flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition';
         document.getElementById('pageTitle').innerText = 'Live Orders Dashboard';
       } else {
         document.getElementById('tab-orders').classList.add('hidden');
         document.getElementById('tab-menu').classList.remove('hidden');
-        document.getElementById('tab-menu-btn').className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-red-600 text-white font-semibold text-sm transition';
-        document.getElementById('tab-orders-btn').className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-sm transition';
+        document.getElementById('tab-menu-btn').className = 'flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg bg-red-600 text-white font-semibold text-xs md:text-sm transition';
+        document.getElementById('tab-orders-btn').className = 'flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition';
         document.getElementById('pageTitle').innerText = 'Menu Management';
       }
     }
@@ -272,7 +270,6 @@
       fetchMenuForAdmin();
     }
 
-    // Subscribe to real-time insertions on the 'orders' table
     function subscribeToLiveOrders() {
       supabaseClient
         .channel('public:orders')
@@ -305,7 +302,6 @@
 
       if (error) return console.error('Error fetching orders:', error);
 
-      // Calculate Stats
       const totalRev = orders.reduce((sum, o) => sum + Number(o.total_amount), 0);
       const pendingCount = orders.filter(o => o.status === 'pending' || o.status === 'preparing').length;
       const completedCount = orders.filter(o => o.status === 'delivered').length;
@@ -314,7 +310,6 @@
       document.getElementById('statPending').innerText = pendingCount;
       document.getElementById('statCompleted').innerText = completedCount;
 
-      // Auto-stop alarm if no pending orders are present
       const hasUnattendedPending = orders.some(o => o.status === 'pending');
       if (!hasUnattendedPending) {
         stopAlarm();
@@ -339,16 +334,16 @@
 
         return `
           <tr class="hover:bg-slate-50 border-b border-slate-100 transition ${isPending ? 'bg-red-50/50' : ''}">
-            <td class="p-4 align-top">
+            <td class="p-3 md:p-4 align-top">
               <div class="font-bold text-slate-900">${o.customer_name}</div>
               <div class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-phone mr-1"></i>${o.customer_phone}</div>
             </td>
-            <td class="p-4 align-top bg-amber-50/40 rounded-lg">
+            <td class="p-3 md:p-4 align-top bg-amber-50/40 rounded-lg">
               <div class="space-y-1">${itemsListHtml}</div>
             </td>
-            <td class="p-4 align-top max-w-xs text-slate-600 text-xs">${o.delivery_address}</td>
-            <td class="p-4 align-top font-black text-red-700">₦${Number(o.total_amount).toLocaleString()}</td>
-            <td class="p-4 align-top">
+            <td class="p-3 md:p-4 align-top max-w-xs text-slate-600 text-xs">${o.delivery_address}</td>
+            <td class="p-3 md:p-4 align-top font-black text-red-700">₦${Number(o.total_amount).toLocaleString()}</td>
+            <td class="p-3 md:p-4 align-top">
               <span class="px-2.5 py-1 rounded-full text-xs font-bold ${
                 o.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' :
                 o.status === 'preparing' ? 'bg-amber-100 text-amber-800' :
@@ -356,8 +351,8 @@
                 'bg-red-100 text-red-800 animate-pulse'
               }">${(o.status || 'pending').replace(/_/g, ' ').toUpperCase()}</span>
             </td>
-            <td class="p-4 align-top text-xs text-slate-500">${new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-            <td class="p-4 align-top text-center">
+            <td class="p-3 md:p-4 align-top text-xs text-slate-500">${new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+            <td class="p-3 md:p-4 align-top text-center">
               <select onchange="updateStatus('${o.id}', this.value)" class="border rounded-lg px-2 py-1 text-xs outline-none bg-white font-medium shadow-sm cursor-pointer hover:border-red-600 transition">
                 <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
                 <option value="preparing" ${o.status === 'preparing' ? 'selected' : ''}>Preparing</option>
