@@ -355,14 +355,16 @@
           order_items (
             quantity,
             unit_price,
-            menu_items (
-              name
-            )
+            item_name
           )
         `)
         .order('created_at', { ascending: false });
 
-      if (error) return console.error('Error fetching orders:', error);
+      if (error) {
+        console.error('Error fetching orders:', error);
+        document.getElementById('ordersTableBody').innerHTML = `<tr><td colspan="7" class="p-8 text-center text-red-500">Error loading orders. Please refresh.</td></tr>`;
+        return;
+      }
 
       allOrdersStore = orders || [];
 
@@ -398,7 +400,7 @@
         const itemsListHtml = o.order_items && o.order_items.length > 0
           ? o.order_items.map(i => `
               <div class="text-xs text-slate-700 font-medium">
-                <span class="font-bold text-red-700">${i.quantity}x</span> ${escapeHtml(i.menu_items ? i.menu_items.name : 'Meal')}
+                <span class="font-bold text-red-700">${i.quantity}x</span> ${escapeHtml(i.item_name || 'Meal')}
               </div>
             `).join('')
           : '<span class="text-xs text-slate-400">No item details</span>';
@@ -510,7 +512,7 @@
             <div class="font-bold text-slate-900">${escapeHtml(o.customer_name)} <span class="text-slate-400 font-normal">(${new Date(o.created_at).toLocaleDateString()})</span></div>
             <div class="text-slate-500 mt-1">${escapeHtml(o.delivery_address)}</div>
             <div class="text-red-700 font-semibold mt-1">
-              ${(o.order_items || []).map(i => `${i.quantity}x ${escapeHtml(i.menu_items ? i.menu_items.name : 'Item')}`).join(', ')}
+              ${(o.order_items || []).map(i => `${i.quantity}x ${escapeHtml(i.item_name || 'Item')}`).join(', ')}
             </div>
           </div>
           <div class="text-right">
@@ -619,4 +621,4 @@
     });
   </script>
 </body>
-</html>     
+</html>
