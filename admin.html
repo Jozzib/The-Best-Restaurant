@@ -307,7 +307,7 @@
       silenceAlarmBtn.classList.remove('hidden');
       silenceAlarmBtn.classList.add('flex');
 
-      if (alarmInterval) return; // Prevent multiple overlapping loops
+      if (alarmInterval) clearInterval(alarmInterval);
       
       playBeepTone();
       alarmInterval = setInterval(playBeepTone, 800);
@@ -410,39 +410,21 @@
       const todayOrders = allOrdersStore.filter(o => o.created_at && o.created_at.startsWith(todayString));
       const dailyRevenue = todayOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
 
-      // UPDATED PENDING COUNT LOGIC: Counts all active (undelivered) orders (covers 'paid', 'pending', 'preparing', 'out_for_delivery')
-      const pendingCount = activeOrders.length;
+      const pendingCount = activeOrders.filter(o => o.status === 'pending' || o.status === 'preparing').length;
       const completedTodayCount = todayOrders.filter(o => o.status === 'delivered').length;
 
       document.getElementById('statDailyRevenue').innerText = `₦${dailyRevenue.toLocaleString()}`;
       document.getElementById('statPending').innerText = pendingCount;
       document.getElementById('statCompleted').innerText = completedTodayCount;
 
-      // CONTINUOUS ALARM CHECK: Trigger loop if there is any active/undelivered order; stop if none remain
-      if (pendingCount > 0) {
-        playAlarm();
-      } else {
+      const hasUnattendedPending = activeOrders.some(o => o.status === 'pending');
+      if (!hasUnattendedPending) {
         stopAlarm();
       }
 
       renderLiveOrdersTable(activeOrders);
       renderGroupedHistory(deliveredOrders);
       renderMonthlySalesArchives(allOrdersStore);
-    }
-
-    // Status update handler for dropdown selection
-    async function updateStatus(orderId, newStatus) {
-      const { error } = await supabaseClient
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId);
-
-      if (error) {
-        console.error('Error updating order status:', error);
-        alert('Failed to update order status.');
-        return;
-      }
-      fetchOrders();
     }
 
     function renderLiveOrdersTable(orders) {
@@ -453,16 +435,15 @@
       }
 
       tbody.innerHTML = orders.map(o => {
-        const itemsListHtml = o.items && o.items.length > 0 
-  ? o.items.map(i => `
-    <div class="text-xs text-slate-700 font-medium">
-      <span class="font-bold text-red-700">${i.quantity}x</span> ${escapeHtml(i.name || 'Meal')}
-    </div>
-  `).join('')
-  : '<span class="text-xs text-slate-400">No item details</span>';
+        const itemsListHtml = o.order_items && o.order_items.length > 0
+          ? o.order_items.map(i => `
+              <div class="text-xs text-slate-700 font-medium">
+                <span class="font-bold text-red-700">${i.quantity}x</span> ${escapeHtml(i.item_name || 'Meal')}
+              </div>
+            `).join('')
           : '<span class="text-xs text-slate-400">No item details</span>';
 
-        const isPending = o.status === 'pending' || o.status === 'paid';
+        const isPending = o.status === 'pending';
 
         return `
           <tr class="hover:bg-slate-50 border-b border-slate-100 transition ${isPending ? 'bg-red-50/50' : ''}">
@@ -485,7 +466,7 @@
             <td class="p-3 md:p-4 align-top text-xs text-slate-500">${new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
             <td class="p-3 md:p-4 align-top text-center">
               <select onchange="updateStatus('${o.id}', this.value)" class="border rounded-lg px-2 py-1 text-xs outline-none bg-white font-medium shadow-sm cursor-pointer hover:border-red-600 transition">
-                <option value="pending" ${o.status === 'pending' || o.status === 'paid' ? 'selected' : ''}>Pending</option>
+                <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
                 <option value="preparing" ${o.status === 'preparing' ? 'selected' : ''}>Preparing</option>
                 <option value="out_for_delivery" ${o.status === 'out_for_delivery' ? 'selected' : ''}>Out for Delivery</option>
                 <option value="delivered" ${o.status === 'delivered' ? 'selected' : ''}>Delivered</option>
@@ -497,7 +478,9 @@
     }
 
     function toggleMonthAccordion(monthKey) {
+      // Toggle state
       openMonthAccordions[monthKey] = !openMonthAccordions[monthKey];
+      // Re-render history with current state
       renderGroupedHistory(allOrdersStore.filter(o => o.status === 'delivered'));
     }
 
@@ -508,6 +491,7 @@
         return;
       }
 
+      // Group by Month Key (e.g. "2026-08") and then Day Key (e.g. "2026-08-03")
       const monthGroups = {};
 
       orders.forEach(o => {
@@ -529,8 +513,10 @@
         monthGroups[monthKey].days[dayKey].orders.push(o);
       });
 
+      // Sort months descending (newest first)
       const sortedMonths = Object.keys(monthGroups).sort().reverse();
 
+      // If first load and no explicit toggle set yet, open the latest month by default
       if (sortedMonths.length > 0 && openMonthAccordions[sortedMonths[0]] === undefined) {
         openMonthAccordions[sortedMonths[0]] = true;
       }
@@ -543,6 +529,7 @@
         
         htmlOutput += `
           <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition">
+            <!-- Clickable Month Header Ribbon -->
             <div onclick="toggleMonthAccordion('${mKey}')" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 font-bold text-sm tracking-wide flex items-center justify-between cursor-pointer transition select-none">
               <span class="flex items-center gap-2"><i class="fa-solid fa-calendar text-red-500"></i> ${escapeHtml(monthData.label)}</span>
               <div class="flex items-center space-x-3">
@@ -554,9 +541,11 @@
             </div>
         `;
 
+        // Only render contents if this month accordion is open
         if (isOpen) {
           htmlOutput += `<div class="p-3 md:p-4 space-y-4 bg-slate-50/50">`;
 
+          // Sort days descending within each month
           const sortedDays = Object.keys(monthData.days).sort().reverse();
 
           sortedDays.forEach(dKey => {
@@ -564,11 +553,13 @@
 
             htmlOutput += `
               <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <!-- Day Header Sub-bar -->
                 <div class="bg-slate-100 border-b border-slate-200 px-4 py-2 flex justify-between items-center text-xs font-bold text-slate-700">
                   <span class="flex items-center gap-1.5"><i class="fa-regular fa-calendar-days text-red-600"></i> ${escapeHtml(dayData.label)}</span>
                   <span class="text-slate-500 font-semibold">${dayData.orders.length} order(s) delivered</span>
                 </div>
 
+                <!-- Table for this specific day -->
                 <div class="overflow-x-auto w-full">
                   <table class="w-full min-w-[700px] text-left border-collapse">
                     <thead class="bg-slate-50/50 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase">
@@ -665,75 +656,122 @@
       }
 
       monthlyContainer.innerHTML = keys.map(k => {
-        const m = monthGroups[k];
+        const group = monthGroups[k];
         return `
-          <div onclick="openMonthlyModal('${m.key}')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-red-600 cursor-pointer transition group">
-            <div class="flex justify-between items-start mb-2">
-              <span class="text-xs font-bold text-slate-400 group-hover:text-red-600 transition">${escapeHtml(m.label)}</span>
-              <i class="fa-solid fa-arrow-trend-up text-slate-300 group-hover:text-red-600 transition"></i>
+          <div onclick="openMonthlyDetails('${k}')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-red-600 cursor-pointer transition flex items-center justify-between group">
+            <div>
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">${escapeHtml(group.label)}</span>
+              <div class="text-lg font-black text-slate-900 mt-0.5">₦${group.totalRevenue.toLocaleString()}</div>
+              <span class="text-xs text-slate-500">${group.orderCount} total orders</span>
             </div>
-            <div class="text-xl font-black text-slate-900">₦${m.totalRevenue.toLocaleString()}</div>
-            <div class="text-xs text-slate-500 mt-1">${m.orderCount} total order(s)</div>
+            <div class="w-9 h-9 rounded-full bg-slate-100 group-hover:bg-red-700 group-hover:text-white text-slate-500 flex items-center justify-center transition">
+              <i class="fa-solid fa-chevron-right text-xs"></i>
+            </div>
           </div>
         `;
       }).join('');
     }
 
-    async function fetchCategories() {
-      const { data, error } = await supabaseClient.from('categories').select('*').order('name');
-      if (!error && data) {
-        categories = data;
-        const select = document.getElementById('dishCategory');
-        if (select) {
-          select.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
-        }
+    function openMonthlyDetails(monthKey) {
+      const filtered = allOrdersStore.filter(o => {
+        if (!o.created_at) return false;
+        const d = new Date(o.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return key === monthKey;
+      });
+
+      if (filtered.length === 0) return;
+
+      const sampleDate = new Date(filtered[0].created_at);
+      const monthLabel = sampleDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const monthTotal = filtered.reduce((s, o) => s + Number(o.total_amount || 0), 0);
+
+      document.getElementById('monthlyModalTitle').innerText = `${monthLabel} Sales Report`;
+      document.getElementById('monthlyModalSubtitle').innerText = `Total Revenue: ₦${monthTotal.toLocaleString()} | Total Orders: ${filtered.length}`;
+
+      const content = document.getElementById('monthlyModalContent');
+      content.innerHTML = filtered.map(o => `
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex justify-between items-start text-xs">
+          <div>
+            <div class="font-bold text-slate-900">${escapeHtml(o.customer_name)} <span class="text-slate-400 font-normal">(${new Date(o.created_at).toLocaleDateString()})</span></div>
+            <div class="text-slate-500 mt-1">${escapeHtml(o.delivery_address)}</div>
+            <div class="text-red-700 font-semibold mt-1">
+              ${(o.order_items || []).map(i => `${i.quantity}x ${escapeHtml(i.item_name || 'Item')}`).join(', ')}
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="font-black text-slate-900 text-sm block">₦${Number(o.total_amount || 0).toLocaleString()}</span>
+            <span class="uppercase font-bold text-[10px] text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 inline-block mt-1">${escapeHtml(o.status)}</span>
+          </div>
+        </div>
+      `).join('');
+
+      toggleMonthlyModal(true);
+    }
+
+    function toggleMonthlyModal(open) {
+      document.getElementById('monthlyModal').classList.toggle('hidden', !open);
+    }
+
+    async function updateStatus(id, newStatus) {
+      const { error } = await supabaseClient.from('orders').update({ status: newStatus }).eq('id', id);
+      if (error) {
+        console.error('Error updating status:', error);
+        alert('Failed to update status.');
+        return;
       }
+      fetchOrders();
+    }
+
+    async function fetchCategories() {
+      const { data, error } = await supabaseClient.from('categories').select('*');
+      if (error) return console.error('Error fetching categories:', error);
+      categories = data || [];
+      const select = document.getElementById('dishCategory');
+      select.innerHTML = '<option value="">Select Category</option>' + 
+        categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
     }
 
     async function fetchMenuForAdmin() {
-      const { data, error } = await supabaseClient
-        .from('menu_items')
-        .select(`*, categories(name)`)
-        .order('name');
-
+      const { data: items, error } = await supabaseClient.from('menu_items').select('*').order('created_at', { ascending: false });
+      if (error) return console.error('Error fetching menu items:', error);
+      
       const grid = document.getElementById('menuItemsGrid');
-      if (error || !data || data.length === 0) {
-        grid.innerHTML = `<p class="text-slate-400 col-span-full text-center py-10">No menu items found.</p>`;
+
+      if (!items || items.length === 0) {
+        grid.innerHTML = `<p class="text-slate-400 col-span-full text-center py-10">No items found.</p>`;
         return;
       }
 
-      grid.innerHTML = data.map(item => `
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div class="h-40 bg-slate-100 relative overflow-hidden">
-            <img src="${escapeHtml(item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c')}" alt="${escapeHtml(item.name)}" class="w-full h-full object-cover" />
-            <span class="absolute top-2 right-2 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md">
-              ${escapeHtml(item.categories?.name || 'General')}
-            </span>
+      grid.innerHTML = items.map(item => `
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col justify-between">
+          <img src="${escapeHtml(item.image_url) || 'https://via.placeholder.com/300'}" class="w-full h-36 object-cover" alt="Meal Image">
+          <div class="p-4 flex-grow">
+            <div class="flex justify-between items-start mb-2">
+              <h4 class="font-bold text-slate-900 text-sm">${escapeHtml(item.name)}</h4>
+              <span class="font-black text-red-700 text-sm">₦${Number(item.price || 0).toLocaleString()}</span>
+            </div>
+            <p class="text-xs text-slate-500">${escapeHtml(item.description) || 'No description'}</p>
           </div>
-          <div class="p-4 flex-1 flex flex-col justify-between">
-            <div>
-              <h4 class="font-bold text-slate-900">${escapeHtml(item.name)}</h4>
-              <p class="text-xs text-slate-500 mt-1 line-clamp-2">${escapeHtml(item.description || 'No description provided.')}</p>
-            </div>
-            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span class="font-black text-red-700">₦${Number(item.price || 0).toLocaleString()}</span>
-              <button onclick="deleteMenuItem('${item.id}')" class="text-slate-400 hover:text-red-600 p-1.5 rounded-lg transition text-xs font-bold flex items-center gap-1">
-                <i class="fa-solid fa-trash-can"></i> Delete
-              </button>
-            </div>
+          <div class="p-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+            <span class="text-xs font-semibold ${item.is_available ? 'text-emerald-600' : 'text-red-600'}">
+              ${item.is_available ? 'In Stock' : 'Out of Stock'}
+            </span>
+            <button onclick="toggleAvailability('${item.id}', ${!item.is_available})" class="text-xs px-2.5 py-1 rounded bg-white border border-slate-300 font-semibold hover:bg-slate-100 transition">
+              Toggle Stock
+            </button>
           </div>
         </div>
       `).join('');
     }
 
-    function toggleNewItemModal(show) {
-      const modal = document.getElementById('newItemModal');
-      if (show) {
-        modal.classList.remove('hidden');
-      } else {
-        modal.classList.add('hidden');
-        document.getElementById('addDishForm').reset();
-      }
+    async function toggleAvailability(id, currentStatus) {
+      await supabaseClient.from('menu_items').update({ is_available: currentStatus }).eq('id', id);
+      fetchMenuForAdmin();
+    }
+
+    function toggleNewItemModal(open) {
+      document.getElementById('newItemModal').classList.toggle('hidden', !open);
     }
 
     document.getElementById('addDishForm').addEventListener('submit', async (e) => {
@@ -742,90 +780,29 @@
       saveBtn.disabled = true;
       saveBtn.innerText = 'Saving...';
 
-      const newItem = {
-        name: document.getElementById('dishName').value.trim(),
-        category_id: document.getElementById('dishCategory').value,
-        price: parseFloat(document.getElementById('dishPrice').value),
-        image_url: document.getElementById('dishImage').value.trim() || null,
-        description: document.getElementById('dishDesc').value.trim() || null
-      };
+      const name = document.getElementById('dishName').value;
+      const category_id = document.getElementById('dishCategory').value;
+      const price = document.getElementById('dishPrice').value;
+      const image_url = document.getElementById('dishImage').value;
+      const description = document.getElementById('dishDesc').value;
 
-      const { error } = await supabaseClient.from('menu_items').insert([newItem]);
+      const { error } = await supabaseClient.from('menu_items').insert([{
+        name, category_id, price, image_url, description, is_available: true
+      }]);
+
       saveBtn.disabled = false;
       saveBtn.innerText = 'Save Dish to Menu';
 
       if (error) {
-        console.error('Error adding dish:', error);
-        alert('Failed to add new meal.');
-        return;
+        alert('Failed to add meal.');
+        console.error(error);
+      } else {
+        alert('New meal added successfully!');
+        toggleNewItemModal(false);
+        document.getElementById('addDishForm').reset();
+        fetchMenuForAdmin();
       }
-
-      toggleNewItemModal(false);
-      fetchMenuForAdmin();
     });
-
-    async function deleteMenuItem(id) {
-      if (!confirm('Are you sure you want to delete this menu item?')) return;
-      const { error } = await supabaseClient.from('menu_items').delete().eq('id', id);
-      if (error) {
-        console.error('Error deleting dish:', error);
-        alert('Failed to delete item.');
-        return;
-      }
-      fetchMenuForAdmin();
-    }
-
-    function openMonthlyModal(monthKey) {
-      const modal = document.getElementById('monthlyModal');
-      const title = document.getElementById('monthlyModalTitle');
-      const subtitle = document.getElementById('monthlyModalSubtitle');
-      const content = document.getElementById('monthlyModalContent');
-
-      const matchedOrders = allOrdersStore.filter(o => {
-        if (!o.created_at) return false;
-        const d = new Date(o.created_at);
-        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        return k === monthKey;
-      });
-
-      const sampleDate = new Date(monthKey + '-01');
-      const monthFormatted = sampleDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      const totalRev = matchedOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
-
-      title.innerText = `Archive: ${monthFormatted}`;
-      subtitle.innerText = `${matchedOrders.length} orders recorded • Total Revenue: ₦${totalRev.toLocaleString()}`;
-
-      if (matchedOrders.length === 0) {
-        content.innerHTML = `<p class="text-slate-400 text-center py-6">No records found for this month.</p>`;
-      } else {
-        content.innerHTML = matchedOrders.map(o => `
-          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 md:p-4 text-xs space-y-2">
-            <div class="flex justify-between font-bold text-slate-900 text-sm">
-              <span>${escapeHtml(o.customer_name)}</span>
-              <span class="text-red-700">₦${Number(o.total_amount || 0).toLocaleString()}</span>
-            </div>
-            <div class="text-slate-500 flex flex-wrap gap-x-4">
-              <span><i class="fa-solid fa-phone mr-1"></i>${escapeHtml(o.customer_phone)}</span>
-              <span><i class="fa-regular fa-clock mr-1"></i>${new Date(o.created_at).toLocaleString()}</span>
-            </div>
-            <div class="text-slate-600 bg-white p-2 rounded border border-slate-100">
-              <strong>Address:</strong> ${escapeHtml(o.delivery_address)}
-            </div>
-          </div>
-        `).join('');
-      }
-
-      modal.classList.remove('hidden');
-    }
-
-    function toggleMonthlyModal(show) {
-      const modal = document.getElementById('monthlyModal');
-      if (show) {
-        modal.classList.remove('hidden');
-      } else {
-        modal.classList.add('hidden');
-      }
-    }
   </script>
 </body>
 </html>
