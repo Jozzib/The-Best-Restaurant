@@ -34,12 +34,15 @@
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <header class="bg-slate-900 text-white py-10 px-4 sm:px-6 relative overflow-hidden">
+  <!-- Hero Section with Background Photo & Overlay -->
+  <header class="bg-slate-900 text-white py-14 sm:py-20 px-4 sm:px-6 relative overflow-hidden bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1920&q=80');">
+    <div class="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/80 to-slate-950/70 backdrop-blur-[2px]"></div>
     <div class="max-w-7xl mx-auto relative z-10 text-center sm:text-left">
-      <span class="bg-red-700/30 text-red-400 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-red-500/30 inline-block mb-3">Fresh & Hot Delivery</span>
-      <h2 class="text-2xl sm:text-4xl font-black mb-2 leading-tight">Order Your Favorite Meals</h2>
-      <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Choose a category below to browse through all available options and customize your purchase!</p>
+      <span class="bg-red-700/80 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full inline-block mb-3 shadow-lg">
+        <i class="fa-solid fa-fire text-amber-300 mr-1"></i> Fresh & Hot Delivery
+      </span>
+      <h2 class="text-3xl sm:text-4xl md:text-5xl font-black mb-2 leading-tight text-white">Order Your Favorite Meals</h2>
+      <p class="text-slate-300 text-xs sm:text-sm max-w-xl font-medium">Choose a category below to browse through all available options and customize your purchase!</p>
     </div>
   </header>
 
