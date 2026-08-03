@@ -157,6 +157,84 @@
     </div>
   </div>
 
+  <!-- Digital Receipt Modal Overlay -->
+  <div id="receiptModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex justify-between items-center bg-slate-900 text-white">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 bg-red-700 text-white rounded-lg flex items-center justify-center font-bold text-sm">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <h3 class="font-bold text-base">Payment Receipt</h3>
+        </div>
+        <button onclick="closeReceiptModal()" class="text-slate-300 hover:text-white text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- Scrollable Receipt Content (Perfect for Screenshots) -->
+      <div class="p-6 overflow-y-auto space-y-5 bg-slate-50 flex-1">
+        <div class="text-center pb-4 border-b border-dashed border-slate-300">
+          <div class="w-12 h-12 bg-red-100 text-red-700 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-2">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <h4 class="font-black text-slate-900 text-lg">Order Successful!</h4>
+          <p class="text-xs text-slate-500">Thank you for ordering from The Best Restaurant</p>
+        </div>
+
+        <!-- Meta Details -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 text-xs space-y-2 shadow-xs">
+          <div class="flex justify-between">
+            <span class="text-slate-400 font-semibold">Order Reference:</span>
+            <span id="receiptRef" class="font-bold text-slate-800 truncate max-w-[180px]">---</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400 font-semibold">Date & Time:</span>
+            <span id="receiptDate" class="font-bold text-slate-800">---</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400 font-semibold">Customer Name:</span>
+            <span id="receiptName" class="font-bold text-slate-800">---</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400 font-semibold">Phone Number:</span>
+            <span id="receiptPhone" class="font-bold text-slate-800">---</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400 font-semibold">Delivery Address:</span>
+            <span id="receiptAddress" class="font-bold text-slate-800 text-right max-w-[180px] truncate">---</span>
+          </div>
+        </div>
+
+        <!-- Purchased Items Breakdown -->
+        <div>
+          <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Purchased Items</span>
+          <div id="receiptItemsList" class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 text-xs shadow-xs">
+            <!-- Dynamically injected items -->
+          </div>
+        </div>
+
+        <!-- Total Amount -->
+        <div class="bg-red-50 border border-red-200 p-4 rounded-xl flex justify-between items-center">
+          <span class="font-bold text-slate-700 text-sm">Total Paid:</span>
+          <span id="receiptTotal" class="font-black text-red-700 text-lg">₦0</span>
+        </div>
+
+        <p class="text-center text-[11px] text-slate-400 italic">Please take a screenshot of this receipt for your reference or pickup validation.</p>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-200 bg-white flex space-x-3">
+        <button onclick="window.print()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-print"></i> Print / Save PDF
+        </button>
+        <button onclick="closeReceiptModal()" class="flex-1 bg-red-700 hover:bg-red-800 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-check"></i> Done
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Cart Slide-over Drawer -->
   <div id="cartDrawer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-end">
     <div class="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-200">
@@ -477,6 +555,10 @@
       document.getElementById('contactModal').classList.toggle('hidden', !open);
     }
 
+    function closeReceiptModal() {
+      document.getElementById('receiptModal').classList.add('hidden');
+    }
+
     // Paystack Checkout Integration
     async function handleCheckout(e) {
       e.preventDefault();
@@ -495,7 +577,7 @@
       try {
         const paystack = new PaystackPop();
         paystack.newTransaction({
-          key: 'pk_test_c02a550dc6bed9f045decbc98c7af49c3c998296', // Your Public Key
+          key: 'pk_test_c02a550dc6bed9f045decbc98c7af49c3c998296',
           email: customer_email,
           amount: total_amount * 100, // Convert Naira to Kobo
           currency: 'NGN',
@@ -561,7 +643,17 @@
         const { error: itemsErr } = await supabaseClient.from('order_items').insert(orderItems);
         if (itemsErr) console.warn('Order items insert warning:', itemsErr);
 
-        alert('🎉 Payment successful & order placed! The kitchen is preparing your meal.');
+        // Populate and display receipt modal
+        showReceipt({
+          ref: orderDetails.payment_ref,
+          date: new Date().toLocaleString(),
+          name: orderDetails.customer_name,
+          phone: orderDetails.customer_phone,
+          address: orderDetails.delivery_address,
+          items: [...cart],
+          total: orderDetails.total_amount
+        });
+
         cart = [];
         saveCart();
         document.getElementById('checkoutForm').reset();
@@ -574,6 +666,28 @@
         submitBtn.disabled = false;
         submitBtn.innerHTML = `<span>Pay & Place Order</span> <i class="fa-solid fa-arrow-right"></i>`;
       }
+    }
+
+    function showReceipt(data) {
+      document.getElementById('receiptRef').innerText = data.ref;
+      document.getElementById('receiptDate').innerText = data.date;
+      document.getElementById('receiptName').innerText = data.name;
+      document.getElementById('receiptPhone').innerText = data.phone;
+      document.getElementById('receiptAddress').innerText = data.address;
+      document.getElementById('receiptTotal').innerText = `₦${data.total.toLocaleString()}`;
+
+      const itemsListContainer = document.getElementById('receiptItemsList');
+      itemsListContainer.innerHTML = data.items.map(i => `
+        <div class="p-2.5 flex justify-between items-center">
+          <div>
+            <span class="font-bold text-slate-800 block">${i.name}</span>
+            <span class="text-slate-400 text-[10px]">Qty: ${i.quantity} × ₦${i.price.toLocaleString()}</span>
+          </div>
+          <span class="font-bold text-slate-700">₦${(i.price * i.quantity).toLocaleString()}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('receiptModal').classList.remove('hidden');
     }
   </script>
 </body>
