@@ -664,65 +664,62 @@
       }
 
       monthlyContainer.innerHTML = keys.map(k => {
-        const group = monthGroups[k];
+        const m = monthGroups[k];
         return `
-          <div onclick="openMonthlyModal('${group.key}')" class="bg-white p-4 md:p-5 rounded-xl border border-slate-200 shadow-sm hover:border-red-500 cursor-pointer transition flex flex-col justify-between">
-            <div>
-              <div class="flex justify-between items-start">
-                <span class="text-xs font-bold text-red-700 uppercase tracking-wider">${escapeHtml(group.label)}</span>
-                <i class="fa-solid fa-arrow-trend-up text-slate-400 text-xs"></i>
-              </div>
-              <div class="text-xl md:text-2xl font-black text-slate-900 mt-2">₦${group.totalRevenue.toLocaleString()}</div>
+          <div onclick="openMonthlyModal('${m.key}')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-red-600 cursor-pointer transition group">
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-xs font-bold text-slate-400 group-hover:text-red-600 transition">${escapeHtml(m.label)}</span>
+              <i class="fa-solid fa-arrow-trend-up text-slate-300 group-hover:text-red-600 transition"></i>
             </div>
-            <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500 font-medium">
-              <span>${group.orderCount} total orders</span>
-              <span class="text-red-700 font-bold hover:underline">View Breakdown &rarr;</span>
-            </div>
+            <div class="text-xl font-black text-slate-900">₦${m.totalRevenue.toLocaleString()}</div>
+            <div class="text-xs text-slate-500 mt-1">${m.orderCount} total order(s)</div>
           </div>
         `;
       }).join('');
     }
 
     async function fetchCategories() {
-      const { data, error } = await supabaseClient.from('categories').select('*');
+      const { data, error } = await supabaseClient.from('categories').select('*').order('name');
       if (!error && data) {
         categories = data;
         const select = document.getElementById('dishCategory');
         if (select) {
-          select.innerHTML = `<option value="">Select Category</option>` + data.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+          select.innerHTML = '<option value="">Select Category</option>' + categories.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
         }
       }
     }
 
     async function fetchMenuForAdmin() {
-      const { data, error } = await supabaseClient.from('menu_items').select('*').order('name');
+      const { data, error } = await supabaseClient
+        .from('menu_items')
+        .select(`*, categories(name)`)
+        .order('name');
+
       const grid = document.getElementById('menuItemsGrid');
-      if (error || !data) {
-        grid.innerHTML = `<p class="text-red-500 col-span-full text-center py-6">Error loading menu items.</p>`;
-        return;
-      }
-      if (data.length === 0) {
-        grid.innerHTML = `<p class="text-slate-400 col-span-full text-center py-6">No menu items found.</p>`;
+      if (error || !data || data.length === 0) {
+        grid.innerHTML = `<p class="text-slate-400 col-span-full text-center py-10">No menu items found.</p>`;
         return;
       }
 
       grid.innerHTML = data.map(item => `
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
-          <div>
-            <div class="h-36 bg-slate-100 overflow-hidden relative">
-              <img src="${escapeHtml(item.image_url || 'https://via.placeholder.com/300')}" alt="${escapeHtml(item.name)}" class="w-full h-full object-cover" />
-              <span class="absolute top-2 right-2 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full">${escapeHtml(item.category)}</span>
-            </div>
-            <div class="p-4">
-              <h4 class="font-bold text-slate-900 text-sm">${escapeHtml(item.name)}</h4>
-              <p class="text-xs text-slate-500 mt-1 line-clamp-2">${escapeHtml(item.description || '')}</p>
-              <div class="font-black text-red-700 text-sm mt-3">₦${Number(item.price || 0).toLocaleString()}</div>
-            </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <div class="h-40 bg-slate-100 relative overflow-hidden">
+            <img src="${escapeHtml(item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c')}" alt="${escapeHtml(item.name)}" class="w-full h-full object-cover" />
+            <span class="absolute top-2 right-2 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md">
+              ${escapeHtml(item.categories?.name || 'General')}
+            </span>
           </div>
-          <div class="p-4 pt-0 flex gap-2">
-            <button onclick="deleteMenuItem('${item.id}')" class="w-full bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-700 text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5">
-              <i class="fa-solid fa-trash"></i> Delete
-            </button>
+          <div class="p-4 flex-1 flex flex-col justify-between">
+            <div>
+              <h4 class="font-bold text-slate-900">${escapeHtml(item.name)}</h4>
+              <p class="text-xs text-slate-500 mt-1 line-clamp-2">${escapeHtml(item.description || 'No description provided.')}</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span class="font-black text-red-700">₦${Number(item.price || 0).toLocaleString()}</span>
+              <button onclick="deleteMenuItem('${item.id}')" class="text-slate-400 hover:text-red-600 p-1.5 rounded-lg transition text-xs font-bold flex items-center gap-1">
+                <i class="fa-solid fa-trash-can"></i> Delete
+              </button>
+            </div>
           </div>
         </div>
       `).join('');
@@ -741,22 +738,24 @@
     document.getElementById('addDishForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const saveBtn = document.getElementById('saveDishBtn');
-      saveBtn.innerText = 'Saving...';
       saveBtn.disabled = true;
+      saveBtn.innerText = 'Saving...';
 
-      const name = document.getElementById('dishName').value;
-      const category = document.getElementById('dishCategory').value;
-      const price = parseFloat(document.getElementById('dishPrice').value);
-      const image_url = document.getElementById('dishImage').value;
-      const description = document.getElementById('dishDesc').value;
+      const newItem = {
+        name: document.getElementById('dishName').value.trim(),
+        category_id: document.getElementById('dishCategory').value,
+        price: parseFloat(document.getElementById('dishPrice').value),
+        image_url: document.getElementById('dishImage').value.trim() || null,
+        description: document.getElementById('dishDesc').value.trim() || null
+      };
 
-      const { error } = await supabaseClient.from('menu_items').insert([{ name, category, price, image_url, description }]);
-
-      saveBtn.innerText = 'Save Dish to Menu';
+      const { error } = await supabaseClient.from('menu_items').insert([newItem]);
       saveBtn.disabled = false;
+      saveBtn.innerText = 'Save Dish to Menu';
 
       if (error) {
-        alert('Error adding dish: ' + error.message);
+        console.error('Error adding dish:', error);
+        alert('Failed to add new meal.');
         return;
       }
 
@@ -765,40 +764,52 @@
     });
 
     async function deleteMenuItem(id) {
-      if (!confirm('Are you sure you want to delete this dish from the menu?')) return;
+      if (!confirm('Are you sure you want to delete this menu item?')) return;
       const { error } = await supabaseClient.from('menu_items').delete().eq('id', id);
       if (error) {
-        alert('Error deleting dish: ' + error.message);
+        console.error('Error deleting dish:', error);
+        alert('Failed to delete item.');
         return;
       }
       fetchMenuForAdmin();
     }
 
-    function openMonthlyModal(yearMonthKey) {
+    function openMonthlyModal(monthKey) {
       const modal = document.getElementById('monthlyModal');
       const title = document.getElementById('monthlyModalTitle');
       const subtitle = document.getElementById('monthlyModalSubtitle');
       const content = document.getElementById('monthlyModalContent');
 
-      const matchingOrders = allOrdersStore.filter(o => o.created_at && o.created_at.startsWith(yearMonthKey));
-      const totalRev = matchingOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+      const matchedOrders = allOrdersStore.filter(o => {
+        if (!o.created_at) return false;
+        const d = new Date(o.created_at);
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return k === monthKey;
+      });
 
-      const d = new Date(yearMonthKey + '-01');
-      const monthLabel = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const sampleDate = new Date(monthKey + '-01');
+      const monthFormatted = sampleDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const totalRev = matchedOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
 
-      title.innerText = `${monthLabel} Sales Report`;
-      subtitle.innerText = `Total Revenue: ₦${totalRev.toLocaleString()} (${matchingOrders.length} orders)`;
+      title.innerText = `Archive: ${monthFormatted}`;
+      subtitle.innerText = `${matchedOrders.length} orders recorded • Total Revenue: ₦${totalRev.toLocaleString()}`;
 
-      if (matchingOrders.length === 0) {
-        content.innerHTML = `<p class="text-slate-400 text-xs text-center py-6">No orders found for this month.</p>`;
+      if (matchedOrders.length === 0) {
+        content.innerHTML = `<p class="text-slate-400 text-center py-6">No records found for this month.</p>`;
       } else {
-        content.innerHTML = matchingOrders.map(o => `
-          <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl flex justify-between items-center text-xs">
-            <div>
-              <div class="font-bold text-slate-900">${escapeHtml(o.customer_name)} <span class="text-slate-400 font-normal">(${escapeHtml(o.customer_phone)})</span></div>
-              <div class="text-slate-500 mt-0.5">${new Date(o.created_at).toLocaleString()} &bull; <span class="uppercase font-semibold text-emerald-700">${escapeHtml(o.status)}</span></div>
+        content.innerHTML = matchedOrders.map(o => `
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 md:p-4 text-xs space-y-2">
+            <div class="flex justify-between font-bold text-slate-900 text-sm">
+              <span>${escapeHtml(o.customer_name)}</span>
+              <span class="text-red-700">₦${Number(o.total_amount || 0).toLocaleString()}</span>
             </div>
-            <div class="font-black text-red-700 text-sm">₦${Number(o.total_amount || 0).toLocaleString()}</div>
+            <div class="text-slate-500 flex flex-wrap gap-x-4">
+              <span><i class="fa-solid fa-phone mr-1"></i>${escapeHtml(o.customer_phone)}</span>
+              <span><i class="fa-regular fa-clock mr-1"></i>${new Date(o.created_at).toLocaleString()}</span>
+            </div>
+            <div class="text-slate-600 bg-white p-2 rounded border border-slate-100">
+              <strong>Address:</strong> ${escapeHtml(o.delivery_address)}
+            </div>
           </div>
         `).join('');
       }
