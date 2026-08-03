@@ -358,4 +358,4 @@ checkoutForm.addEventListener('submit', async (e) => {
   updateCartUI();
   toggleCart(false);
   checkoutForm.reset();
-});      
+});
