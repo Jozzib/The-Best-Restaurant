@@ -8,6 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Paystack Inline JS V2 -->
+  <script src="https://js.paystack.co/v2/inline.js"></script>
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
@@ -201,7 +203,7 @@
           </div>
 
           <button type="submit" id="submitOrderBtn" class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded-xl shadow-lg shadow-red-700/20 text-sm transition flex items-center justify-center gap-2">
-            <span>Place Order</span>
+            <span>Pay & Place Order</span>
             <i class="fa-solid fa-arrow-right"></i>
           </button>
         </form>
@@ -477,41 +479,80 @@
       document.getElementById('contactModal').classList.toggle('hidden', !open);
     }
 
+    // Paystack Checkout Integration
     async function handleCheckout(e) {
       e.preventDefault();
       if (cart.length === 0) return alert('Your cart is empty!');
-
-      const submitBtn = document.getElementById('submitOrderBtn');
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Submitting...`;
 
       const customer_name = document.getElementById('custName').value;
       const customer_phone = document.getElementById('custPhone').value;
       const delivery_address = document.getElementById('custAddress').value;
       const total_amount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const customer_email = `${customer_phone.replace(/\s+/g, '')}@restaurant.test`;
+
+      const submitBtn = document.getElementById('submitOrderBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Opening Paystack...`;
 
       try {
-        // 1. Insert Order
+        const paystack = new PaystackPop();
+        paystack.newTransaction({
+          key: 'pk_test_c02a550dc6bed9f045decbc98c7af49c3c998296', // Updated Test Public Key
+          email: customer_email,
+          amount: total_amount * 100, // Convert Naira to Kobo
+          currency: 'NGN',
+          metadata: {
+            custom_fields: [
+              { display_name: "Customer Name", variable_name: "customer_name", value: customer_name },
+              { display_name: "Phone Number", variable_name: "customer_phone", value: customer_phone }
+            ]
+          },
+          onSuccess: async function(transaction) {
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving Paid Order...`;
+            await saveOrderToSupabase({
+              customer_name,
+              customer_phone,
+              delivery_address,
+              total_amount,
+              payment_ref: transaction.reference
+            });
+          },
+          onCancel: function() {
+            alert('Payment window closed.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<span>Pay & Place Order</span> <i class="fa-solid fa-arrow-right"></i>`;
+          }
+        });
+      } catch (err) {
+        console.error(err);
+        alert('Could not initialize payment gateway.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>Pay & Place Order</span> <i class="fa-solid fa-arrow-right"></i>`;
+      }
+    }
+
+    async function saveOrderToSupabase(orderDetails) {
+      const submitBtn = document.getElementById('submitOrderBtn');
+
+      try {
+        // 1. Insert Order into Supabase
         const { data: orderData, error: orderErr } = await supabaseClient
           .from('orders')
           .insert([{
-            customer_name,
-            customer_phone,
-            delivery_address,
-            total_amount,
-            status: 'pending'
+            customer_name: orderDetails.customer_name,
+            customer_phone: orderDetails.customer_phone,
+            delivery_address: orderDetails.delivery_address,
+            total_amount: orderDetails.total_amount,
+            status: 'paid'
           }])
           .select()
           .single();
 
-        if (orderErr) {
-          throw new Error(orderErr.message || 'Failed to submit order');
-        }
+        if (orderErr) throw new Error(orderErr.message || 'Failed to submit order');
 
-        // 2. Prepare Line Items safely supporting UUID check
+        // 2. Prepare Line Items
         const orderItems = cart.map(item => {
           const isUuid = typeof item.id === 'string' && item.id.length === 36 && item.id.includes('-');
-          
           return {
             order_id: orderData.id,
             menu_item_id: isUuid ? item.id : null,
@@ -522,22 +563,20 @@
         });
 
         const { error: itemsErr } = await supabaseClient.from('order_items').insert(orderItems);
+        if (itemsErr) console.warn('Order items insert warning:', itemsErr);
 
-        if (itemsErr) {
-          console.error('Order line items insert error:', itemsErr);
-        }
-
-        alert('🎉 Order placed successfully! The kitchen is preparing your meal.');
+        alert('🎉 Payment successful & order placed! The kitchen is preparing your meal.');
         cart = [];
         saveCart();
         document.getElementById('checkoutForm').reset();
         toggleCartDrawer(false);
+
       } catch (err) {
         console.error(err);
-        alert('Failed to submit order: ' + (err.message || err));
+        alert('Payment was successful, but saving the order to the database failed: ' + err.message);
       } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = `<span>Place Order</span> <i class="fa-solid fa-arrow-right"></i>`;
+        submitBtn.innerHTML = `<span>Pay & Place Order</span> <i class="fa-solid fa-arrow-right"></i>`;
       }
     }
   </script>
