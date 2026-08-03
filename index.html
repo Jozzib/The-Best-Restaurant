@@ -582,7 +582,7 @@
       document.getElementById('receiptModal').classList.add('hidden');
     }
 
-    function handleCheckout(event) {
+    async function handleCheckout(event) {
       event.preventDefault();
 
       if (cart.length === 0) {
@@ -615,9 +615,32 @@
             { display_name: "Delivery Address", variable_name: "delivery_address", value: address }
           ]
         },
-        onSuccess: function(response) {
-          lastCompletedOrder = {
+        onSuccess: async function(response) {
+          
+          const orderPayload = {
             reference: response.reference || transactionRef,
+            customer_name: name,
+            customer_email: email,
+            customer_phone: phone,
+            delivery_address: address,
+            items: cart,
+            total_amount: totalAmount,
+            status: 'pending',
+            created_at: new Date().toISOString()
+          };
+
+          // Save order to Supabase so Admin picks it up
+          try {
+            const { error: dbError } = await supabaseClient.from('orders').insert([orderPayload]);
+            if (dbError) {
+              console.error('Failed to save order to database:', dbError.message);
+            }
+          } catch (err) {
+            console.error('Supabase exception:', err);
+          }
+
+          lastCompletedOrder = {
+            reference: orderPayload.reference,
             date: new Date().toLocaleString(),
             name: name,
             phone: phone,
