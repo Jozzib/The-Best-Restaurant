@@ -8,8 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Paystack Inline JS V2 -->
-  <script src="https://js.paystack.co/v2/inline.js"></script>
+  <!-- Paystack Inline JS V1 (Ensures compatibility with PaystackPop.setup) -->
+  <script src="https://js.paystack.co/v1/inline.js"></script>
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
@@ -297,6 +297,9 @@
     const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
     
+    // PUBLIC PAYSTACK TEST PUBLIC KEY
+    const PAYSTACK_PUBLIC_KEY = 'pk_test_41c09eb27a294b0051280d0d6ef12be986241a79';
+
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { 
         persistSession: false,
@@ -485,120 +488,117 @@
       if (!item) return;
 
       const qty = itemQuantities[itemId] || 1;
-
       const existing = cart.find(c => c.id === item.id);
+      
       if (existing) {
         existing.quantity += qty;
       } else {
-        cart.push({ id: item.id, name: item.name, price: item.price, quantity: qty, image_url: item.image_url });
+        cart.push({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: qty,
+          image_url: item.image_url
+        });
       }
 
+      itemQuantities[itemId] = 1;
+      const qtyElem = document.getElementById(`qty-${itemId}`);
+      if (qtyElem) qtyElem.innerText = '1';
+
+      saveAndRenderCart();
+      toggleCartDrawer(true);
+    }
+
+    function updateCartQty(itemId, delta) {
+      const existing = cart.find(c => c.id === itemId);
+      if (!existing) return;
+
+      existing.quantity += delta;
+      if (existing.quantity <= 0) {
+        cart = cart.filter(c => c.id !== itemId);
+      }
+
+      saveAndRenderCart();
+    }
+
+    function saveAndRenderCart() {
       localStorage.setItem('restaurant_cart', JSON.stringify(cart));
       renderCart();
     }
 
+    function renderCart() {
+      const badge = document.getElementById('cartBadge');
+      const container = document.getElementById('cartItemsList');
+      const totalElem = document.getElementById('cartTotal');
+
+      const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+      badge.innerText = totalItemsCount;
+
+      const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      totalElem.innerText = `₦${totalPrice.toLocaleString()}`;
+
+      if (cart.length === 0) {
+        container.innerHTML = `<p class="text-slate-400 text-center py-12 text-sm">Your cart is empty.</p>`;
+        return;
+      }
+
+      container.innerHTML = cart.map(item => `
+        <div class="flex items-center justify-between bg-slate-50 border border-slate-200/80 p-3 rounded-xl gap-3">
+          <img src="${item.image_url || ''}" alt="${item.name}" class="w-12 h-12 rounded-lg object-cover bg-slate-200">
+          <div class="flex-1 min-w-0">
+            <h4 class="font-bold text-slate-900 text-xs truncate">${item.name}</h4>
+            <p class="text-xs font-black text-red-700 mt-0.5">₦${(item.price * item.quantity).toLocaleString()}</p>
+          </div>
+          <div class="flex items-center space-x-1.5 bg-white border border-slate-200 p-1 rounded-lg">
+            <button onclick="updateCartQty('${item.id}', -1)" class="w-5 h-5 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100 rounded text-xs">&minus;</button>
+            <span class="text-xs font-bold text-slate-800 px-1">${item.quantity}</span>
+            <button onclick="updateCartQty('${item.id}', 1)" class="w-5 h-5 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100 rounded text-xs">&plus;</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
     function toggleCartDrawer(open) {
       const drawer = document.getElementById('cartDrawer');
-      if (open) {
-        drawer.classList.remove('hidden');
-      } else {
-        drawer.classList.add('hidden');
-      }
+      drawer.classList.toggle('hidden', !open);
     }
 
     function toggleContactModal(open) {
       const modal = document.getElementById('contactModal');
-      if (open) {
-        modal.classList.remove('hidden');
-      } else {
-        modal.classList.add('hidden');
-      }
+      modal.classList.toggle('hidden', !open);
     }
 
     function closeReceiptModal() {
       document.getElementById('receiptModal').classList.add('hidden');
     }
 
-    function renderCart() {
-      const cartItemsList = document.getElementById('cartItemsList');
-      const cartBadge = document.getElementById('cartBadge');
-      const cartTotal = document.getElementById('cartTotal');
-
-      let totalCount = 0;
-      let totalPrice = 0;
+    async function handleCheckout(e) {
+      e.preventDefault();
 
       if (cart.length === 0) {
-        cartItemsList.innerHTML = `<p class="text-slate-400 text-center py-12 text-sm">Your cart is empty.</p>`;
-        cartBadge.innerText = '0';
-        cartTotal.innerText = '₦0';
+        alert('Your cart is empty.');
         return;
       }
 
-      cartItemsList.innerHTML = cart.map(item => {
-        totalCount += item.quantity;
-        totalPrice += item.price * item.quantity;
+      const name = document.getElementById('custName').value.trim();
+      const email = document.getElementById('custEmail').value.trim();
+      const phone = document.getElementById('custPhone').value.trim();
+      const address = document.getElementById('custAddress').value.trim();
 
-        return `
-          <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <div class="flex items-center space-x-3">
-              <img src="${item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'}" alt="${item.name}" class="w-12 h-12 rounded-lg object-cover">
-              <div>
-                <h4 class="font-bold text-slate-900 text-xs">${item.name}</h4>
-                <span class="text-xs text-red-700 font-bold">₦${(item.price * item.quantity).toLocaleString()}</span>
-              </div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <div class="flex items-center space-x-1 bg-white p-1 rounded border border-slate-200">
-                <button onclick="updateCartQty('${item.id}', -1)" class="w-5 h-5 flex items-center justify-center bg-slate-100 rounded font-bold text-xs">&minus;</button>
-                <span class="text-xs font-bold px-1">${item.quantity}</span>
-                <button onclick="updateCartQty('${item.id}', 1)" class="w-5 h-5 flex items-center justify-center bg-slate-100 rounded font-bold text-xs">&plus;</button>
-              </div>
-              <button onclick="removeFromCart('${item.id}')" class="text-slate-400 hover:text-red-700 text-xs p-1"><i class="fa-solid fa-trash"></i></button>
-            </div>
-          </div>
-        `;
-      }).join('');
+      const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const amountInKobo = Math.round(totalAmount * 100);
 
-      cartBadge.innerText = totalCount;
-      cartTotal.innerText = `₦${totalPrice.toLocaleString()}`;
-    }
+      const submitBtn = document.getElementById('submitOrderBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Initializing Payment...';
 
-    function updateCartQty(itemId, delta) {
-      const item = cart.find(c => c.id === itemId);
-      if (!item) return;
-      item.quantity += delta;
-      if (item.quantity <= 0) {
-        cart = cart.filter(c => c.id !== itemId);
-      }
-      localStorage.setItem('restaurant_cart', JSON.stringify(cart));
-      renderCart();
-    }
-
-    function removeFromCart(itemId) {
-      cart = cart.filter(c => c.id !== itemId);
-      localStorage.setItem('restaurant_cart', JSON.stringify(cart));
-      renderCart();
-    }
-
-    async function handleCheckout(event) {
-      event.preventDefault();
-      if (cart.length === 0) return;
-
-      const name = document.getElementById('custName').value;
-      const email = document.getElementById('custEmail').value;
-      const phone = document.getElementById('custPhone').value;
-      const address = document.getElementById('custAddress').value;
-
-      const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const reference = 'BR-' + Math.floor(Math.random() * 900000 + 100000);
-
-      const paystack = new PaystackPop();
-      paystack.newTransaction({
-        key: SUPABASE_ANON_KEY,
+      // Use Paystack V1 inline handler setup to resolve the "We could not start this transaction / Please enter a valid Key" error
+      let handler = PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
         email: email,
-        amount: totalPrice * 100,
+        amount: amountInKobo,
         currency: 'NGN',
-        ref: reference,
         metadata: {
           custom_fields: [
             { display_name: "Customer Name", variable_name: "customer_name", value: name },
@@ -606,48 +606,96 @@
             { display_name: "Delivery Address", variable_name: "delivery_address", value: address }
           ]
         },
-        onSuccess: async function(transaction) {
-          try {
-            await supabaseClient.from('orders').insert([{
-              reference: transaction.reference,
-              customer_name: name,
-              customer_email: email,
-              customer_phone: phone,
-              delivery_address: address,
-              items: cart,
-              total_amount: totalPrice,
-              status: 'paid'
-            }]);
-          } catch(e) {
-            console.warn('Could not save order to database:', e);
-          }
-
-          document.getElementById('receiptRef').innerText = transaction.reference;
-          document.getElementById('receiptDate').innerText = new Date().toLocaleString();
-          document.getElementById('receiptName').innerText = name;
-          document.getElementById('receiptPhone').innerText = phone;
-          document.getElementById('receiptAddress').innerText = address;
-          document.getElementById('receiptTotal').innerText = `₦${totalPrice.toLocaleString()}`;
-
-          document.getElementById('receiptItemsList').innerHTML = cart.map(item => `
-            <div class="flex justify-between p-2.5">
-              <span>${item.name} (x${item.quantity})</span>
-              <span class="font-bold">₦${(item.price * item.quantity).toLocaleString()}</span>
-            </div>
-          `).join('');
-
-          toggleCartDrawer(false);
-          document.getElementById('receiptModal').classList.remove('hidden');
-
-          cart = [];
-          localStorage.removeItem('restaurant_cart');
-          renderCart();
-          document.getElementById('checkoutForm').reset();
+        callback: function(response) {
+          finalizeOrder({
+            reference: response.reference,
+            customer_name: name,
+            customer_email: email,
+            customer_phone: phone,
+            delivery_address: address,
+            total_amount: totalAmount
+          });
         },
-        onCancel: function() {
-          alert('Payment was cancelled.');
+        onClose: function() {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>Pay & Place Order</span> <i class="fa-solid fa-arrow-right"></i>';
         }
       });
+
+      handler.openIframe();
+    }
+
+    async function finalizeOrder(paymentData) {
+      const submitBtn = document.getElementById('submitOrderBtn');
+      submitBtn.innerText = 'Saving Order...';
+
+      try {
+        const { data: orderRecord, error: orderErr } = await supabaseClient
+          .from('orders')
+          .insert([{
+            customer_name: paymentData.customer_name,
+            customer_email: paymentData.customer_email,
+            customer_phone: paymentData.customer_phone,
+            delivery_address: paymentData.delivery_address,
+            total_amount: paymentData.total_amount,
+            status: 'paid',
+            paystack_reference: paymentData.reference
+          }])
+          .select()
+          .single();
+
+        if (orderErr) {
+          console.error('Error saving order to Supabase:', orderErr);
+        }
+
+        const generatedOrderId = orderRecord ? orderRecord.id : 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+
+        if (orderRecord) {
+          const orderItemsPayload = cart.map(item => ({
+            order_id: orderRecord.id,
+            item_id: item.id,
+            item_name: item.name,
+            quantity: item.quantity,
+            unit_price: item.price
+          }));
+
+          await supabaseClient.from('order_items').insert(orderItemsPayload);
+        }
+
+        // Populate receipt modal
+        document.getElementById('receiptRef').innerText = paymentData.reference;
+        document.getElementById('receiptDate').innerText = new Date().toLocaleString();
+        document.getElementById('receiptName').innerText = paymentData.customer_name;
+        document.getElementById('receiptPhone').innerText = paymentData.customer_phone;
+        document.getElementById('receiptAddress').innerText = paymentData.delivery_address;
+        document.getElementById('receiptTotal').innerText = `₦${paymentData.total_amount.toLocaleString()}`;
+
+        document.getElementById('receiptItemsList').innerHTML = cart.map(item => `
+          <div class="flex justify-between items-center p-2.5">
+            <div>
+              <span class="font-bold text-slate-800">${item.name}</span>
+              <span class="text-slate-400 block text-[10px]">Qty: ${item.quantity} × ₦${item.price.toLocaleString()}</span>
+            </div>
+            <span class="font-bold text-slate-700">₦${(item.price * item.quantity).toLocaleString()}</span>
+          </div>
+        `).join('');
+
+        // Clear cart and state
+        cart = [];
+        saveAndRenderCart();
+        toggleCartDrawer(false);
+        document.getElementById('checkoutForm').reset();
+
+        // Show receipt
+        document.getElementById('receiptModal').classList.remove('hidden');
+
+      } catch (err) {
+        console.error('Checkout finalization error:', err);
+        alert('Payment was successful, but saving order record failed. Please take a screenshot of your payment reference.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>Pay & Place Order</span> <i class="fa-solid fa-arrow-right"></i>';
+      }
     }
   </script>
 </body>
