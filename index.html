@@ -596,11 +596,10 @@
       const address = document.getElementById('custAddress').value.trim();
 
       const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const amountInKobo = totalAmount * 100; // Paystack expects amount in kobo
+      const amountInKobo = totalAmount * 100;
 
       const transactionRef = 'TBR_' + Math.random().toString(36).substring(2, 9).toUpperCase();
 
-      // Initialize Paystack V2 Popup transaction
       const popup = new PaystackPop();
       popup.newTransaction({
         key: 'pk_test_c02a550dc6bed9f045decbc98c7af49c3c998296',
@@ -629,14 +628,19 @@
             created_at: new Date().toISOString()
           };
 
-          // Save order to Supabase so Admin picks it up
+          // Save order to Supabase and handle any diagnostics
           try {
-            const { error: dbError } = await supabaseClient.from('orders').insert([orderPayload]);
+            const { data, error: dbError } = await supabaseClient.from('orders').insert([orderPayload]).select();
+            
             if (dbError) {
-              console.error('Failed to save order to database:', dbError.message);
+              console.error('Database Save Failed:', dbError);
+              alert('Payment Successful, but saving to Admin Database failed: ' + dbError.message);
+            } else {
+              console.log('Order successfully written to database:', data);
             }
           } catch (err) {
-            console.error('Supabase exception:', err);
+            console.error('Unexpected error during insert:', err);
+            alert('Unexpected connection error while saving order to database.');
           }
 
           lastCompletedOrder = {
