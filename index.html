@@ -25,12 +25,21 @@
         </div>
       </div>
 
-      <!-- Cart Button Header -->
-      <button onclick="toggleCartDrawer(true)" class="relative bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2">
-        <i class="fa-solid fa-basket-shopping"></i>
-        <span class="hidden sm:inline">My Order</span>
-        <span id="cartBadge" class="bg-red-700 text-white text-xs font-black px-2 py-0.5 rounded-full">0</span>
-      </button>
+      <!-- Center / Right Actions: Contact Us & Cart -->
+      <div class="flex items-center space-x-3">
+        <!-- Contact Us Button -->
+        <button onclick="toggleContactModal(true)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center gap-2">
+          <i class="fa-solid fa-headset text-red-700"></i>
+          <span class="hidden sm:inline">Contact Us</span>
+        </button>
+
+        <!-- Cart Button Header -->
+        <button onclick="toggleCartDrawer(true)" class="relative bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2">
+          <i class="fa-solid fa-basket-shopping"></i>
+          <span class="hidden sm:inline">My Order</span>
+          <span id="cartBadge" class="bg-red-700 text-white text-xs font-black px-2 py-0.5 rounded-full">0</span>
+        </button>
+      </div>
     </div>
   </nav>
 
@@ -85,6 +94,71 @@
       </div>
     </div>
   </main>
+
+  <!-- Contact Us Modal Overlay -->
+  <div id="contactModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 bg-red-100 text-red-700 rounded-lg flex items-center justify-center font-bold text-sm">
+            <i class="fa-solid fa-headset"></i>
+          </div>
+          <h3 class="font-bold text-slate-900 text-base">Get In Touch With Us</h3>
+        </div>
+        <button onclick="toggleContactModal(false)" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- Modal Body (Company Info & Contact Details) -->
+      <div class="p-5 sm:p-6 space-y-5">
+        <p class="text-xs sm:text-sm text-slate-600">Have questions regarding your order or want to make a special booking? Reach out to our team through any of the channels below:</p>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Company Number -->
+          <div class="bg-slate-50 border border-slate-200/80 p-3.5 rounded-xl flex items-start space-x-3">
+            <div class="text-red-700 mt-0.5"><i class="fa-solid fa-phone text-sm"></i></div>
+            <div>
+              <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Company Number</span>
+              <a href="tel:+2348012345678" class="text-xs sm:text-sm font-bold text-slate-800 hover:text-red-700 transition">+234 801 234 5678</a>
+            </div>
+          </div>
+
+          <!-- Email Address -->
+          <div class="bg-slate-50 border border-slate-200/80 p-3.5 rounded-xl flex items-start space-x-3">
+            <div class="text-red-700 mt-0.5"><i class="fa-solid fa-envelope text-sm"></i></div>
+            <div>
+              <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Email Address</span>
+              <a href="mailto:support@thebestrestaurant.com" class="text-xs sm:text-sm font-bold text-slate-800 hover:text-red-700 transition break-all">support@thebestrestaurant.com</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Physical Address -->
+        <div class="bg-slate-50 border border-slate-200/80 p-3.5 rounded-xl flex items-start space-x-3">
+          <div class="text-red-700 mt-0.5"><i class="fa-solid fa-location-dot text-sm"></i></div>
+          <div>
+            <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Office & Restaurant Address</span>
+            <p class="text-xs sm:text-sm font-bold text-slate-800">12 Taste Master Avenue, Victoria Island, Lagos, Nigeria</p>
+          </div>
+        </div>
+
+        <!-- Working Hours -->
+        <div class="bg-red-50/50 border border-red-100 p-3.5 rounded-xl flex items-start space-x-3">
+          <div class="text-red-700 mt-0.5"><i class="fa-solid fa-clock text-sm"></i></div>
+          <div>
+            <span class="block text-xs font-bold text-red-700 uppercase tracking-wider">Working Hours</span>
+            <p class="text-xs sm:text-sm font-medium text-slate-700">Monday – Sunday: 8:00 AM – 10:00 PM</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+        <button onclick="toggleContactModal(false)" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-2 rounded-xl text-xs transition">Close</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Cart Slide-over Drawer -->
   <div id="cartDrawer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-end">
@@ -399,6 +473,10 @@
       document.getElementById('cartDrawer').classList.toggle('hidden', !open);
     }
 
+    function toggleContactModal(open) {
+      document.getElementById('contactModal').classList.toggle('hidden', !open);
+    }
+
     async function handleCheckout(e) {
       e.preventDefault();
       if (cart.length === 0) return alert('Your cart is empty!');
@@ -463,5 +541,70 @@
       }
     }
   </script>
+
+  <!-- Contact Us Modal Overlay -->
+  <div id="contactModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 bg-red-100 text-red-700 rounded-lg flex items-center justify-center font-bold text-sm">
+            <i class="fa-solid fa-headset"></i>
+          </div>
+          <h3 class="font-bold text-slate-900 text-base">Get In Touch With Us</h3>
+        </div>
+        <button onclick="toggleContactModal(false)" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- Modal Body (Company Info & Contact Details) -->
+      <div class="p-5 sm:p-6 space-y-5">
+        <p class="text-xs sm:text-sm text-slate-600">Have questions regarding your order or want to make a special booking? Reach out to our team through any of the channels below:</p>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Company Number -->
+          <div class="bg-slate-50 border border-slate-200/80 p-3.5 rounded-xl flex items-start space-x-3">
+            <div class="text-red-700 mt-0.5"><i class="fa-solid fa-phone text-sm"></i></div>
+            <div>
+              <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Company Number</span>
+              <a href="tel:+2348012345678" class="text-xs sm:text-sm font-bold text-slate-800 hover:text-red-700 transition">+234 801 234 5678</a>
+            </div>
+          </div>
+
+          <!-- Email Address -->
+          <div class="bg-slate-50 border border-slate-200/80 p-3.5 rounded-xl flex items-start space-x-3">
+            <div class="text-red-700 mt-0.5"><i class="fa-solid fa-envelope text-sm"></i></div>
+            <div>
+              <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Email Address</span>
+              <a href="mailto:support@thebestrestaurant.com" class="text-xs sm:text-sm font-bold text-slate-800 hover:text-red-700 transition break-all">support@thebestrestaurant.com</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Physical Address -->
+        <div class="bg-slate-50 border border-slate-200/80 p-3.5 rounded-xl flex items-start space-x-3">
+          <div class="text-red-700 mt-0.5"><i class="fa-solid fa-location-dot text-sm"></i></div>
+          <div>
+            <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Office & Restaurant Address</span>
+            <p class="text-xs sm:text-sm font-bold text-slate-800">12 Taste Master Avenue, Victoria Island, Lagos, Nigeria</p>
+          </div>
+        </div>
+
+        <!-- Working Hours -->
+        <div class="bg-red-50/50 border border-red-100 p-3.5 rounded-xl flex items-start space-x-3">
+          <div class="text-red-700 mt-0.5"><i class="fa-solid fa-clock text-sm"></i></div>
+          <div>
+            <span class="block text-xs font-bold text-red-700 uppercase tracking-wider">Working Hours</span>
+            <p class="text-xs sm:text-sm font-medium text-slate-700">Monday – Sunday: 8:00 AM – 10:00 PM</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+        <button onclick="toggleContactModal(false)" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-2 rounded-xl text-xs transition">Close</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
