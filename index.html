@@ -1,454 +1,225 @@
 <!DOCTYPE html>
-<html lang="en" class="overflow-x-hidden">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>The Best Restaurant | Order Online</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Best Restaurant | Admin Dashboard</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col overflow-x-hidden w-full max-w-full">
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col">
 
-  <!-- Navigation Bar -->
-  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 w-full">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex justify-between items-center">
-      <!-- Logo -->
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 bg-red-700 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-md shadow-red-700/20">B</div>
-        <div>
-          <h1 class="text-slate-900 font-black text-lg sm:text-xl leading-none">The Best</h1>
-          <span class="text-xs text-red-700 font-bold uppercase tracking-widest">Restaurant</span>
-        </div>
+  <!-- Admin Header -->
+  <header class="bg-white shadow-sm sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <div class="w-10 h-10 bg-red-700 rounded-lg flex items-center justify-center text-white font-black text-xl">A</div>
+        <h1 class="text-xl font-black text-gray-900 tracking-wide">Restaurant Admin Dashboard</h1>
       </div>
-
-      <!-- Cart Button Header -->
-      <button onclick="toggleCartDrawer(true)" class="relative bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2">
-        <i class="fa-solid fa-basket-shopping"></i>
-        <span class="hidden sm:inline">My Order</span>
-        <span id="cartBadge" class="bg-red-700 text-white text-xs font-black px-2 py-0.5 rounded-full">0</span>
-      </button>
-    </div>
-  </nav>
-
-  <!-- Hero Section -->
-  <header class="bg-slate-900 text-white py-10 px-4 sm:px-6 relative overflow-hidden">
-    <div class="max-w-7xl mx-auto relative z-10 text-center sm:text-left">
-      <span class="bg-red-700/30 text-red-400 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-red-500/30 inline-block mb-3">Fresh & Hot Delivery</span>
-      <h2 class="text-2xl sm:text-4xl font-black mb-2 leading-tight">Order Your Favorite Meals</h2>
-      <p class="text-slate-400 text-xs sm:text-sm max-w-xl">Choose a category below to browse through all available options and customize your purchase!</p>
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800">
+          ● Live Orders Active
+        </span>
+      </div>
     </div>
   </header>
 
-  <!-- Main Content Container -->
-  <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 flex-1">
-    
-    <!-- Primary Food Category Selection Tabs -->
-    <div class="flex items-center space-x-2 overflow-x-auto pb-3 mb-2 scrollbar-none max-w-full">
-      <button onclick="selectCategory('all', this)" class="category-btn active bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow-sm transition">
-        All Items
+  <!-- Audio Notification Sound -->
+  <audio id="orderNotificationSound" preload="auto" loop>
+    <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Main Content Area -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-grow w-full">
+    <div class="mb-6 flex justify-between items-center">
+      <h2 class="text-xl font-extrabold text-gray-900">Incoming Customer Orders</h2>
+      <button onclick="fetchOrders()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold px-4 py-2 rounded-lg transition shadow-xs">
+        🔄 Refresh Orders
       </button>
-      <button onclick="selectCategory('swallow_soup', this)" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
-        Swallow & Soups
-      </button>
-      <button onclick="selectCategory('rice_dishes', this)" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
-        Rice Dishes
-      </button>
-      <button onclick="selectCategory('porridge', this)" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
-        Porridge
-      </button>
-      <div id="dynamicCategoryContainer" class="flex items-center space-x-2">
-        <!-- Dynamic categories loaded from database -->
-      </div>
     </div>
 
-    <!-- Secondary Sub-filter for Swallow & Soup Items -->
-    <div id="subCategoryBar" class="hidden flex items-center space-x-2 overflow-x-auto pb-4 mb-6">
-      <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">Filter Type:</span>
-      <button onclick="filterSubCategory('all', this)" class="sub-btn active bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition">All Items</button>
-      <button onclick="filterSubCategory('soup', this)" class="sub-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition">Soups Only</button>
-      <button onclick="filterSubCategory('swallow', this)" class="sub-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition">Swallows Only</button>
-      <button onclick="filterSubCategory('protein', this)" class="sub-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition">Proteins & Meat</button>
-    </div>
-
-    <!-- Menu Items Grid -->
-    <div id="menuGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-      <div class="col-span-full text-center py-16 text-slate-400 font-medium">
-        <i class="fa-solid fa-spinner fa-spin text-2xl text-red-700 mb-2"></i>
-        <p>Fetching menu items...</p>
-      </div>
+    <!-- Orders Grid Container -->
+    <div id="ordersContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="col-span-full text-center py-16 text-gray-400">Loading orders...</div>
     </div>
   </main>
 
-  <!-- Cart Slide-over Drawer -->
-  <div id="cartDrawer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-end">
-    <div class="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-200">
-      
-      <!-- Drawer Header -->
-      <div class="p-4 sm:p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-        <div class="flex items-center space-x-2">
-          <i class="fa-solid fa-basket-shopping text-red-700"></i>
-          <h3 class="font-bold text-slate-900 text-base">Your Cart</h3>
-        </div>
-        <button onclick="toggleCartDrawer(false)" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
-      </div>
-
-      <!-- Cart Items List -->
-      <div id="cartItemsList" class="p-4 sm:p-5 flex-1 overflow-y-auto space-y-4">
-        <p class="text-slate-400 text-center py-12 text-sm">Your cart is empty.</p>
-      </div>
-
-      <!-- Checkout Footer -->
-      <div class="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 space-y-4">
-        <div class="flex justify-between items-center text-sm font-bold">
-          <span class="text-slate-600">Total Amount:</span>
-          <span id="cartTotal" class="text-xl font-black text-red-700">₦0</span>
-        </div>
-
-        <!-- Checkout Form -->
-        <form id="checkoutForm" onsubmit="handleCheckout(event)" class="space-y-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Your Full Name</label>
-            <input type="text" id="custName" required placeholder="e.g. John Doe" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-600 bg-white" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Phone Number</label>
-            <input type="tel" id="custPhone" required placeholder="e.g. 08012345678" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-600 bg-white" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Delivery Address</label>
-            <textarea id="custAddress" required rows="2" placeholder="House no, Street address, Area..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-600 bg-white"></textarea>
-          </div>
-
-          <button type="submit" id="submitOrderBtn" class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded-xl shadow-lg shadow-red-700/20 text-sm transition flex items-center justify-center gap-2">
-            <span>Place Order</span>
-            <i class="fa-solid fa-arrow-right"></i>
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Footer -->
-  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
-    <p>&copy; 2026 The Best Restaurant. All rights reserved.</p>
-  </footer>
-
+  <!-- Admin Script Logic -->
   <script>
+    // Initialize Supabase with Explicit Global Headers
     const SUPABASE_URL = 'https://ueexdcojxjsevwfjbsmp.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZXhkY29qeGpzZXZ3Zmpic21pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MjAxOTcsImV4cCI6MjEwMTE5NjE5N30.glSXDNgb38D8puPQa5GHzkcrb-R7vpXqM3H9v5KGmhU';
+
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: false }
+      auth: { 
+        persistSession: false,
+        autoRefreshToken: false
+      },
+      global: {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      }
     });
 
-    let allMenuItems = [];
-    let dbCategories = [];
-    let currentCategoryKey = 'all';
-    let currentSubFilter = 'all';
-    let cart = JSON.parse(localStorage.getItem('restaurant_cart')) || [];
-    let itemQuantities = {};
-
-    const FULL_BUILTIN_MENU = [
-      { id: 'soup_egusi', name: 'Egusi Soup', price: 2000, category_key: 'swallow_soup', sub_type: 'soup', description: 'Rich melon seed soup prepared with palm oil, fish & spices.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'soup_ogbono', name: 'Ogbono Soup', price: 2000, category_key: 'swallow_soup', sub_type: 'soup', description: 'Traditional draw soup made with ground wild mango seeds.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'soup_efo', name: 'Efo Riro (Vegetable Soup)', price: 2200, category_key: 'swallow_soup', sub_type: 'soup', description: 'Savory Yorùbá spinach stew enriched with locust beans.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'soup_okro', name: 'Okro Soup', price: 1800, category_key: 'swallow_soup', sub_type: 'soup', description: 'Fresh chopped okra cooked in rich spicy seafood broth.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'soup_bitterleaf', name: 'Bitter Leaf Soup (Ofe Onugbu)', price: 2200, category_key: 'swallow_soup', sub_type: 'soup', description: 'Hearty Eastern Nigerian soup made with washed bitter leaves.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'swallow_pounded_yam', name: 'Pounded Yam (1 Wrap)', price: 1000, category_key: 'swallow_soup', sub_type: 'swallow', description: 'Smooth, fluffy freshly pounded white yam wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'swallow_eba', name: 'Yellow Eba / Garri (1 Wrap)', price: 600, category_key: 'swallow_soup', sub_type: 'swallow', description: 'Steamed cassava meal prepared with yellow garri.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'swallow_amala', name: 'Amala (1 Wrap)', price: 700, category_key: 'swallow_soup', sub_type: 'swallow', description: 'Traditional black yam flour swallow wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'swallow_semo', name: 'Semovita (1 Wrap)', price: 800, category_key: 'swallow_soup', sub_type: 'swallow', description: 'Smooth, firm semolina flour swallow wrap.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'meat_goat', name: 'Goat Meat (1 Piece)', price: 1500, category_key: 'swallow_soup', sub_type: 'protein', description: 'Tender chunk of spiced goat meat.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'meat_beef', name: 'Fried / Stewed Beef (1 Piece)', price: 1000, category_key: 'swallow_soup', sub_type: 'protein', description: 'Succulent seasoned beef chunk.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'meat_chicken', name: 'Fried Chicken Quarter', price: 1800, category_key: 'swallow_soup', sub_type: 'protein', description: 'Crispy seasoned chicken piece.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'rice_jollof', name: 'Smokey Party Jollof Rice', price: 2500, category_key: 'rice_dishes', sub_type: 'rice', description: 'Authentic Nigerian party Jollof rice cooked over firewood flavor.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'rice_fried', name: 'Special Fried Rice', price: 2500, category_key: 'rice_dishes', sub_type: 'rice', description: 'Savory fried rice garnished with fresh sweet corn, green peas & liver.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'rice_ofada', name: 'Ofada Rice & Ayamase Sauce', price: 3000, category_key: 'rice_dishes', sub_type: 'rice', description: 'Local unpolished Ofada rice served with spicy green pepper Ayamase stew.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'rice_white_stew', name: 'White Rice & Beef Stew', price: 2200, category_key: 'rice_dishes', sub_type: 'rice', description: 'Steamed white rice served with rich tomato pepper stew.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'porridge_yam', name: 'Special Yam Porridge (Asaro)', price: 2500, category_key: 'porridge', sub_type: 'porridge', description: 'Flavorsome mashed yam porridge cooked with palm oil, crayfish & vegetables.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'porridge_beans', name: 'Beans Porridge (Ewa Aganyin)', price: 2000, category_key: 'porridge', sub_type: 'porridge', description: 'Soft cooked brown beans served with dark caramelized pepper sauce.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true },
-      { id: 'porridge_plantain', name: 'Unripe Plantain Porridge', price: 2300, category_key: 'porridge', sub_type: 'porridge', description: 'Healthy plantain porridge cooked with dry fish, vegetable greens & palm oil.', image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', is_available: true }
-    ];
+    const audioSound = document.getElementById('orderNotificationSound');
+    let orders = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-      fetchCategoriesAndMenu();
-      renderCart();
+      fetchOrders();
+      listenToRealtimeOrders();
+
+      // Enable audio context on first user click (browsers require user interaction to allow auto-play)
+      document.body.addEventListener('click', () => {
+        if (audioSound) {
+          audioSound.load();
+        }
+      }, { once: true });
     });
 
-    async function fetchCategoriesAndMenu() {
-      try {
-        const { data: catData, error: catErr } = await supabaseClient.from('categories').select('*');
-        if (catErr) console.warn('Could not fetch categories from DB:', catErr.message);
-        dbCategories = catData || [];
+    // 1. Fetch Orders from Database
+    async function fetchOrders() {
+      const { data, error } = await supabaseClient
+        .from('orders')
+        .select(`
+          *,
+          order_items (
+            id,
+            quantity,
+            unit_price,
+            menu_items ( name )
+          )
+        `)
+        .order('created_at', { ascending: false });
 
-        const extraCategories = dbCategories.filter(c => {
-          const name = c.name ? c.name.toLowerCase() : '';
-          return !name.includes('swallow') && !name.includes('soup') && !name.includes('rice') && !name.includes('porridge');
-        });
-
-        const dynamicContainer = document.getElementById('dynamicCategoryContainer');
-        dynamicContainer.innerHTML = extraCategories.map(cat => `
-          <button onclick="selectCategory('${cat.id}', this)" class="category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition">
-            ${cat.name}
-          </button>
-        `).join('');
-
-        const { data: dbItems, error: itemErr } = await supabaseClient.from('menu_items').select('*');
-        if (itemErr) console.warn('Could not fetch menu items from DB:', itemErr.message);
-        
-        let combined = [...(dbItems || [])];
-
-        FULL_BUILTIN_MENU.forEach(bItem => {
-          if (!combined.some(i => i.name.toLowerCase() === bItem.name.toLowerCase())) {
-            combined.push(bItem);
-          }
-        });
-
-        allMenuItems = combined;
-        renderFilteredMenu();
-      } catch (err) {
-        console.error('Error in fetchCategoriesAndMenu:', err);
-        allMenuItems = FULL_BUILTIN_MENU;
-        renderFilteredMenu();
-      }
-    }
-
-    function selectCategory(catKey, btn) {
-      currentCategoryKey = catKey;
-      currentSubFilter = 'all';
-
-      document.querySelectorAll('.category-btn').forEach(b => {
-        b.className = 'category-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition';
-      });
-      if (btn) btn.className = 'category-btn active bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow-sm transition';
-
-      const isSwallowSoup = catKey === 'swallow_soup';
-      document.getElementById('subCategoryBar').classList.toggle('hidden', !isSwallowSoup);
-
-      renderFilteredMenu();
-    }
-
-    function filterSubCategory(subType, btn) {
-      currentSubFilter = subType;
-      document.querySelectorAll('.sub-btn').forEach(b => {
-        b.className = 'sub-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition';
-      });
-      if (btn) btn.className = 'sub-btn active bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition';
-
-      renderFilteredMenu();
-    }
-
-    function renderFilteredMenu() {
-      let filtered = [...allMenuItems];
-
-      if (currentCategoryKey !== 'all') {
-        filtered = filtered.filter(item => {
-          if (item.category_key) {
-            return item.category_key === currentCategoryKey;
-          }
-
-          const cat = dbCategories.find(c => c.id === item.category_id);
-          const catName = cat ? cat.name.toLowerCase() : '';
-
-          if (currentCategoryKey === 'swallow_soup') return catName.includes('swallow') || catName.includes('soup');
-          if (currentCategoryKey === 'rice_dishes') return catName.includes('rice');
-          if (currentCategoryKey === 'porridge') return catName.includes('porridge');
-          return item.category_id === currentCategoryKey;
-        });
-      }
-
-      if (currentSubFilter !== 'all') {
-        filtered = filtered.filter(item => item.sub_type === currentSubFilter);
-      }
-
-      const grid = document.getElementById('menuGrid');
-
-      if (filtered.length === 0) {
-        grid.innerHTML = `<p class="col-span-full text-center text-slate-400 text-sm py-12">No menu items found in this section.</p>`;
+      if (error) {
+        console.error('Error fetching orders:', error);
         return;
       }
 
-      grid.innerHTML = filtered.map(item => {
-        const qty = itemQuantities[item.id] || 1;
+      orders = data || [];
+      renderOrders();
+      checkUnattendedOrders();
+    }
+
+    // 2. Real-Time Listener (Auto-Refresh & Sound Alert)
+    function listenToRealtimeOrders() {
+      supabaseClient
+        .channel('public:orders')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
+          console.log('New order received!', payload);
+          
+          // Play continuous alert sound
+          playOrderSound();
+
+          // Refresh orders list immediately
+          fetchOrders();
+        })
+        .subscribe();
+    }
+
+    // Sound Control Functions
+    function playOrderSound() {
+      if (audioSound) {
+        audioSound.currentTime = 0;
+        audioSound.play().catch(err => console.log('Autoplay prevented by browser:', err));
+      }
+    }
+
+    function stopOrderSound() {
+      if (audioSound) {
+        audioSound.pause();
+        audioSound.currentTime = 0;
+      }
+    }
+
+    function checkUnattendedOrders() {
+      const hasPending = orders.some(o => o.status === 'pending');
+      if (!hasPending) {
+        stopOrderSound();
+      }
+    }
+
+    // 3. Render Orders in Admin UI
+    function renderOrders() {
+      const ordersContainer = document.getElementById('ordersContainer');
+      if (!ordersContainer) return;
+
+      if (orders.length === 0) {
+        ordersContainer.innerHTML = `<p class="text-gray-500 col-span-full text-center py-10">No orders received yet.</p>`;
+        return;
+      }
+
+      ordersContainer.innerHTML = orders.map(order => {
+        const isPending = order.status === 'pending';
+        const dateFormatted = new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const itemsList = order.order_items ? order.order_items.map(item => `
+          <div class="text-xs text-gray-700 flex justify-between py-1 border-b border-gray-50">
+            <span>${item.quantity}x ${item.menu_items ? item.menu_items.name : 'Custom Item'}</span>
+            <span class="font-bold">₦${(item.unit_price * item.quantity).toLocaleString()}</span>
+          </div>
+        `).join('') : '<p class="text-xs text-gray-400">No items listed</p>';
 
         return `
-          <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between">
+          <div class="bg-white rounded-xl shadow-md border-2 ${isPending ? 'border-red-500 animate-pulse' : 'border-gray-100'} p-5 transition flex flex-col justify-between">
             <div>
-              <div class="relative h-40 w-full bg-slate-100 overflow-hidden">
-                <img src="${item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'}" alt="${item.name}" class="w-full h-full object-cover">
-                ${!item.is_available ? '<div class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center text-white text-xs font-bold uppercase tracking-wider">Out of Stock</div>' : ''}
+              <div class="flex justify-between items-center mb-3">
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full ${isPending ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'} uppercase">
+                  ${order.status || 'Pending'}
+                </span>
+                <span class="text-xs text-gray-400 font-semibold">${dateFormatted}</span>
               </div>
-              <div class="p-4">
-                <h3 class="font-bold text-slate-900 text-sm mb-1">${item.name}</h3>
-                <p class="text-xs text-slate-500 line-clamp-2 mb-2">${item.description || 'Freshly prepared specialty dish.'}</p>
+
+              <h4 class="font-extrabold text-gray-900 text-base">${order.customer_name}</h4>
+              <p class="text-xs text-gray-500 font-medium">📞 ${order.customer_phone}</p>
+              <p class="text-xs text-gray-500 mb-4">📍 ${order.delivery_address}</p>
+
+              <div class="bg-gray-50 p-3 rounded-lg mb-4">
+                ${itemsList}
               </div>
             </div>
 
-            <div class="p-4 pt-0 space-y-3 border-t border-slate-50 mt-auto">
-              <div class="flex items-center justify-between">
-                <span class="font-black text-red-700 text-base">₦${Number(item.price).toLocaleString()}</span>
-                
-                <div class="flex items-center space-x-2 bg-slate-100 p-1 rounded-lg border border-slate-200">
-                  <button onclick="adjustCardQty('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded font-bold text-slate-700 hover:bg-slate-200 text-xs shadow-xs">&minus;</button>
-                  <span id="qty-${item.id}" class="text-xs font-bold text-slate-800 px-1">${qty}</span>
-                  <button onclick="adjustCardQty('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-white rounded font-bold text-slate-700 hover:bg-slate-200 text-xs shadow-xs">&plus;</button>
-                </div>
+            <div>
+              <div class="flex justify-between items-center pt-2 border-t border-gray-100 mb-4">
+                <span class="text-xs text-gray-500 font-bold">Total Amount:</span>
+                <span class="text-lg font-black text-red-700">₦${Number(order.total_amount).toLocaleString()}</span>
               </div>
 
-              <button onclick="addSelectedToCart('${item.id}')" ${!item.is_available ? 'disabled' : ''} class="w-full bg-red-700 hover:bg-red-800 disabled:bg-slate-300 text-white font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-cart-plus"></i> Add to Order
-              </button>
+              ${isPending ? `
+                <button onclick="acceptOrder('${order.id}')" class="w-full bg-red-700 hover:bg-red-800 text-white text-sm font-bold py-2.5 rounded-lg transition shadow flex items-center justify-center space-x-2">
+                  <span>🔔 Accept & Silence Alarm</span>
+                </button>
+              ` : `
+                <button disabled class="w-full bg-gray-200 text-gray-500 text-xs font-bold py-2 rounded-lg cursor-not-allowed">
+                  ✓ Accepted
+                </button>
+              `}
             </div>
           </div>
         `;
       }).join('');
     }
 
-    function adjustCardQty(itemId, delta) {
-      if (!itemQuantities[itemId]) itemQuantities[itemId] = 1;
-      itemQuantities[itemId] = Math.max(1, itemQuantities[itemId] + delta);
-      
-      const qtyElem = document.getElementById(`qty-${itemId}`);
-      if (qtyElem) qtyElem.innerText = itemQuantities[itemId];
-    }
+    // 4. Accept Order & Silence Alarm
+    window.acceptOrder = async function(orderId) {
+      const { error } = await supabaseClient
+        .from('orders')
+        .update({ status: 'accepted' })
+        .eq('id', orderId);
 
-    function addSelectedToCart(itemId) {
-      const item = allMenuItems.find(i => i.id === itemId);
-      if (!item) return;
-
-      const qty = itemQuantities[itemId] || 1;
-
-      const existing = cart.find(c => c.id === item.id);
-      if (existing) {
-        existing.quantity += qty;
-      } else {
-        cart.push({ id: item.id, name: item.name, price: Number(item.price), quantity: qty });
-      }
-
-      itemQuantities[itemId] = 1;
-      const qtyElem = document.getElementById(`qty-${itemId}`);
-      if (qtyElem) qtyElem.innerText = 1;
-
-      saveCart();
-      toggleCartDrawer(true);
-    }
-
-    function updateCartQty(index, delta) {
-      if (cart[index]) {
-        cart[index].quantity += delta;
-        if (cart[index].quantity <= 0) {
-          cart.splice(index, 1);
-        }
-      }
-      saveCart();
-    }
-
-    function saveCart() {
-      localStorage.setItem('restaurant_cart', JSON.stringify(cart));
-      renderCart();
-    }
-
-    function renderCart() {
-      const cartBadge = document.getElementById('cartBadge');
-      const cartItemsList = document.getElementById('cartItemsList');
-      const cartTotal = document.getElementById('cartTotal');
-
-      const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
-      const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-      cartBadge.innerText = totalQty;
-      cartTotal.innerText = `₦${totalPrice.toLocaleString()}`;
-
-      if (cart.length === 0) {
-        cartItemsList.innerHTML = `<p class="text-slate-400 text-center py-12 text-sm">Your cart is empty.</p>`;
+      if (error) {
+        alert('Failed to update order status.');
+        console.error(error);
         return;
       }
 
-      cartItemsList.innerHTML = cart.map((item, idx) => `
-        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/60">
-          <div class="flex-1 min-w-0 mr-3">
-            <h4 class="font-bold text-slate-800 text-xs leading-snug">${item.name}</h4>
-            <span class="text-xs font-semibold text-red-700">₦${item.price.toLocaleString()}</span>
-          </div>
-          <div class="flex items-center space-x-2 bg-white px-2 py-1 rounded-lg border border-slate-200">
-            <button onclick="updateCartQty(${idx}, -1)" class="text-slate-500 hover:text-red-700 text-xs font-bold px-1.5">&minus;</button>
-            <span class="text-xs font-bold text-slate-800">${item.quantity}</span>
-            <button onclick="updateCartQty(${idx}, 1)" class="text-slate-500 hover:text-red-700 text-xs font-bold px-1.5">&plus;</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function toggleCartDrawer(open) {
-      document.getElementById('cartDrawer').classList.toggle('hidden', !open);
-    }
-
-    async function handleCheckout(e) {
-      e.preventDefault();
-      if (cart.length === 0) return alert('Your cart is empty!');
-
-      const submitBtn = document.getElementById('submitOrderBtn');
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Submitting...`;
-
-      const customer_name = document.getElementById('custName').value;
-      const customer_phone = document.getElementById('custPhone').value;
-      const delivery_address = document.getElementById('custAddress').value;
-      const total_amount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-      try {
-        // 1. Insert Order
-        const { data: orderData, error: orderErr } = await supabaseClient
-          .from('orders')
-          .insert([{
-            customer_name,
-            customer_phone,
-            delivery_address,
-            total_amount,
-            status: 'pending'
-          }])
-          .select()
-          .single();
-
-        if (orderErr) {
-          throw new Error(orderErr.message || 'Failed to submit order');
-        }
-
-        // 2. Prepare Line Items safely supporting UUID check
-        const orderItems = cart.map(item => {
-          const isUuid = typeof item.id === 'string' && item.id.length === 36 && item.id.includes('-');
-          
-          return {
-            order_id: orderData.id,
-            menu_item_id: isUuid ? item.id : null,
-            item_name: item.name,
-            quantity: item.quantity,
-            unit_price: item.price
-          };
-        });
-
-        const { error: itemsErr } = await supabaseClient.from('order_items').insert(orderItems);
-
-        if (itemsErr) {
-          console.error('Order line items insert error:', itemsErr);
-        }
-
-        alert('🎉 Order placed successfully! The kitchen is preparing your meal.');
-        cart = [];
-        saveCart();
-        document.getElementById('checkoutForm').reset();
-        toggleCartDrawer(false);
-      } catch (err) {
-        console.error(err);
-        alert('Failed to submit order: ' + (err.message || 'Please check connection/permissions.'));
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<span>Place Order</span><i class="fa-solid fa-arrow-right"></i>`;
-      }
-    }
+      stopOrderSound();
+      fetchOrders();
+    };
   </script>
 </body>
 </html>
