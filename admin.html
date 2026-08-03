@@ -453,12 +453,13 @@
       }
 
       tbody.innerHTML = orders.map(o => {
-        const itemsListHtml = o.order_items && o.order_items.length > 0
-          ? o.order_items.map(i => `
-              <div class="text-xs text-slate-700 font-medium">
-                <span class="font-bold text-red-700">${i.quantity}x</span> ${escapeHtml(i.item_name || 'Meal')}
-              </div>
-            `).join('')
+        const itemsListHtml = o.items && o.items.length > 0 
+  ? o.items.map(i => `
+    <div class="text-xs text-slate-700 font-medium">
+      <span class="font-bold text-red-700">${i.quantity}x</span> ${escapeHtml(i.name || 'Meal')}
+    </div>
+  `).join('')
+  : '<span class="text-xs text-slate-400">No item details</span>';
           : '<span class="text-xs text-slate-400">No item details</span>';
 
         const isPending = o.status === 'pending' || o.status === 'paid';
