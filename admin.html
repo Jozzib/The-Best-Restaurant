@@ -148,30 +148,18 @@
 
       </div>
 
-      <!-- DELIVERED HISTORY TAB -->
+      <!-- DELIVERED HISTORY TAB (DOCUMENTED BY MONTH & DAYS) -->
       <div id="tab-history" class="hidden w-full space-y-6">
-        <div class="flex justify-between items-center mb-3">
+        <div class="flex justify-between items-center mb-2">
           <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
-            <i class="fa-solid fa-folder-closed text-red-700"></i> Delivered Orders Archive
+            <i class="fa-solid fa-folder-closed text-red-700"></i> Delivered Orders Documentation
           </h3>
-          <span class="text-xs text-slate-400">Completed & successfully delivered orders</span>
+          <span class="text-xs text-slate-400">Organized chronologically by month and days</span>
         </div>
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto w-full">
-          <table class="w-full min-w-[700px] text-left border-collapse">
-            <thead class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
-              <tr>
-                <th class="p-3 md:p-4">Customer</th>
-                <th class="p-3 md:p-4">Items Ordered</th>
-                <th class="p-3 md:p-4">Delivery Address</th>
-                <th class="p-3 md:p-4">Total Amount</th>
-                <th class="p-3 md:p-4">Status</th>
-                <th class="p-3 md:p-4">Time Completed</th>
-              </tr>
-            </thead>
-            <tbody id="historyTableBody" class="divide-y divide-slate-100 text-sm">
-              <tr><td colspan="6" class="p-8 text-center text-slate-400">No history records yet.</td></tr>
-            </tbody>
-          </table>
+        
+        <!-- Dynamic containers for grouped history logs -->
+        <div id="historyContainer" class="space-y-6">
+          <p class="text-slate-400 text-xs py-4 text-center">Loading delivered history archives...</p>
         </div>
       </div>
 
@@ -432,7 +420,7 @@
       }
 
       renderLiveOrdersTable(activeOrders);
-      renderHistoryTable(deliveredOrders);
+      renderGroupedHistory(deliveredOrders);
       renderMonthlySalesArchives(allOrdersStore);
     }
 
@@ -486,40 +474,126 @@
       }).join('');
     }
 
-    function renderHistoryTable(orders) {
-      const tbody = document.getElementById('historyTableBody');
-      if (orders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">No delivered orders found in history.</td></tr>`;
+    function renderGroupedHistory(orders) {
+      const historyContainer = document.getElementById('historyContainer');
+      if (!orders || orders.length === 0) {
+        historyContainer.innerHTML = `<div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400">No delivered orders found in history.</div>`;
         return;
       }
 
-      tbody.innerHTML = orders.map(o => {
-        const itemsListHtml = o.order_items && o.order_items.length > 0
-          ? o.order_items.map(i => `
-              <div class="text-xs text-slate-700 font-medium">
-                <span class="font-bold text-red-700">${i.quantity}x</span> ${escapeHtml(i.item_name || 'Meal')}
-              </div>
-            `).join('')
-          : '<span class="text-xs text-slate-400">No item details</span>';
+      // Group by Month Key (e.g. "2026-08") and then Day Key (e.g. "2026-08-03")
+      const monthGroups = {};
 
-        return `
-          <tr class="hover:bg-slate-50 border-b border-slate-100 transition">
-            <td class="p-3 md:p-4 align-top">
-              <div class="font-bold text-slate-900">${escapeHtml(o.customer_name)}</div>
-              <div class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-phone mr-1"></i>${escapeHtml(o.customer_phone)}</div>
-            </td>
-            <td class="p-3 md:p-4 align-top bg-slate-50 rounded-lg">
-              <div class="space-y-1">${itemsListHtml}</div>
-            </td>
-            <td class="p-3 md:p-4 align-top max-w-xs text-slate-600 text-xs">${escapeHtml(o.delivery_address)}</td>
-            <td class="p-3 md:p-4 align-top font-black text-slate-900">₦${Number(o.total_amount || 0).toLocaleString()}</td>
-            <td class="p-3 md:p-4 align-top">
-              <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">DELIVERED</span>
-            </td>
-            <td class="p-3 md:p-4 align-top text-xs text-slate-500">${new Date(o.created_at).toLocaleString([], {dateStyle: 'short', timeStyle: 'short'})}</td>
-          </tr>
+      orders.forEach(o => {
+        if (!o.created_at) return;
+        const d = new Date(o.created_at);
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const monthLabel = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        
+        const dayKey = d.toISOString().split('T')[0];
+        const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+        if (!monthGroups[monthKey]) {
+          monthGroups[monthKey] = { label: monthLabel, days: {} };
+        }
+        if (!monthGroups[monthKey].days[dayKey]) {
+          monthGroups[monthKey].days[dayKey] = { label: dayLabel, orders: [] };
+        }
+
+        monthGroups[monthKey].days[dayKey].orders.push(o);
+      });
+
+      // Sort months descending (newest first)
+      const sortedMonths = Object.keys(monthGroups).sort().reverse();
+
+      let htmlOutput = '';
+
+      sortedMonths.forEach(mKey => {
+        const monthData = monthGroups[mKey];
+        
+        htmlOutput += `
+          <div class="space-y-4">
+            <!-- Month Header Ribbon -->
+            <div class="bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-sm tracking-wide flex items-center justify-between shadow-sm">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-calendar text-red-500"></i> ${escapeHtml(monthData.label)}</span>
+              <span class="text-xs bg-slate-800 px-2.5 py-1 rounded-lg text-slate-300">Month Archive</span>
+            </div>
         `;
-      }).join('');
+
+        // Sort days descending within each month
+        const sortedDays = Object.keys(monthData.days).sort().reverse();
+
+        sortedDays.forEach(dKey => {
+          const dayData = monthData.days[dKey];
+
+          htmlOutput += `
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden ml-0 md:ml-4">
+              <!-- Day Header Sub-bar -->
+              <div class="bg-slate-100 border-b border-slate-200 px-4 py-2 flex justify-between items-center text-xs font-bold text-slate-700">
+                <span class="flex items-center gap-1.5"><i class="fa-regular fa-calendar-days text-red-600"></i> ${escapeHtml(dayData.label)}</span>
+                <span class="text-slate-500 font-semibold">${dayData.orders.length} order(s) delivered</span>
+              </div>
+
+              <!-- Table for this specific day -->
+              <div class="overflow-x-auto w-full">
+                <table class="w-full min-w-[700px] text-left border-collapse">
+                  <thead class="bg-slate-50/50 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase">
+                    <tr>
+                      <th class="p-3">Customer</th>
+                      <th class="p-3">Items Ordered</th>
+                      <th class="p-3">Delivery Address</th>
+                      <th class="p-3">Total Amount</th>
+                      <th class="p-3">Status</th>
+                      <th class="p-3">Time Completed</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 text-sm">
+          `;
+
+          dayData.orders.forEach(o => {
+            const itemsListHtml = o.order_items && o.order_items.length > 0
+              ? o.order_items.map(i => `
+                  <div class="text-xs text-slate-700 font-medium">
+                    <span class="font-bold text-red-700">${i.quantity}x</span> ${escapeHtml(i.item_name || 'Meal')}
+                  </div>
+                `).join('')
+              : '<span class="text-xs text-slate-400">No item details</span>';
+
+            const timeStr = new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            htmlOutput += `
+              <tr class="hover:bg-slate-50/80 transition">
+                <td class="p-3 align-top">
+                  <div class="font-bold text-slate-900">${escapeHtml(o.customer_name)}</div>
+                  <div class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-phone mr-1"></i>${escapeHtml(o.customer_phone)}</div>
+                </td>
+                <td class="p-3 align-top bg-slate-50/40 rounded-lg">
+                  <div class="space-y-1">${itemsListHtml}</div>
+                </td>
+                <td class="p-3 align-top max-w-xs text-slate-600 text-xs">${escapeHtml(o.delivery_address)}</td>
+                <td class="p-3 align-top font-black text-slate-900">₦${Number(o.total_amount || 0).toLocaleString()}</td>
+                <td class="p-3 align-top">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">DELIVERED</span>
+                </td>
+                <td class="p-3 align-top text-xs font-semibold text-slate-600">
+                  <i class="fa-regular fa-clock mr-1 text-slate-400"></i>${timeStr}
+                </td>
+              </tr>
+            `;
+          });
+
+          htmlOutput += `
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+        });
+
+        htmlOutput += `</div>`;
+      });
+
+      historyContainer.innerHTML = htmlOutput;
     }
 
     function renderMonthlySalesArchives(orders) {
@@ -641,7 +715,7 @@
         return;
       }
 
-      grid.innerHTML = items.linkHtml || items.map(item => `
+      grid.innerHTML = items.map(item => `
         <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col justify-between">
           <img src="${escapeHtml(item.image_url) || 'https://via.placeholder.com/300'}" class="w-full h-36 object-cover" alt="Meal Image">
           <div class="p-4 flex-grow">
