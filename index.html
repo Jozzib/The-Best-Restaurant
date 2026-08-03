@@ -490,204 +490,164 @@
       if (existing) {
         existing.quantity += qty;
       } else {
-        cart.push({ id: item.id, name: item.name, price: Number(item.price), quantity: qty });
+        cart.push({ id: item.id, name: item.name, price: item.price, quantity: qty, image_url: item.image_url });
       }
 
-      itemQuantities[itemId] = 1;
-      const qtyElem = document.getElementById(`qty-${itemId}`);
-      if (qtyElem) qtyElem.innerText = 1;
-
-      saveCart();
-      toggleCartDrawer(true);
-    }
-
-    function updateCartQty(index, delta) {
-      if (cart[index]) {
-        cart[index].quantity += delta;
-        if (cart[index].quantity <= 0) {
-          cart.splice(index, 1);
-        }
-      }
-      saveCart();
-    }
-
-    function saveCart() {
       localStorage.setItem('restaurant_cart', JSON.stringify(cart));
       renderCart();
     }
 
-    function renderCart() {
-      const cartBadge = document.getElementById('cartBadge');
-      const cartItemsList = document.getElementById('cartItemsList');
-      const cartTotal = document.getElementById('cartTotal');
-
-      const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
-      const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-      cartBadge.innerText = totalQty;
-      cartTotal.innerText = `₦${totalPrice.toLocaleString()}`;
-
-      if (cart.length === 0) {
-        cartItemsList.innerHTML = `<p class="text-slate-400 text-center py-12 text-sm">Your cart is empty.</p>`;
-        return;
-      }
-
-      cartItemsList.innerHTML = cart.map((item, idx) => `
-        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/60">
-          <div class="flex-1 min-w-0 mr-3">
-            <h4 class="font-bold text-slate-800 text-xs leading-snug">${item.name}</h4>
-            <span class="text-xs font-semibold text-red-700">₦${item.price.toLocaleString()}</span>
-          </div>
-          <div class="flex items-center space-x-2 bg-white px-2 py-1 rounded-lg border border-slate-200">
-            <button onclick="updateCartQty(${idx}, -1)" class="text-slate-500 hover:text-red-700 text-xs font-bold px-1.5">&minus;</button>
-            <span class="text-xs font-bold text-slate-800">${item.quantity}</span>
-            <button onclick="updateCartQty(${idx}, 1)" class="text-slate-500 hover:text-red-700 text-xs font-bold px-1.5">&plus;</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
     function toggleCartDrawer(open) {
-      document.getElementById('cartDrawer').classList.toggle('hidden', !open);
+      const drawer = document.getElementById('cartDrawer');
+      if (open) {
+        drawer.classList.remove('hidden');
+      } else {
+        drawer.classList.add('hidden');
+      }
     }
 
     function toggleContactModal(open) {
-      document.getElementById('contactModal').classList.toggle('hidden', !open);
+      const modal = document.getElementById('contactModal');
+      if (open) {
+        modal.classList.remove('hidden');
+      } else {
+        modal.classList.add('hidden');
+      }
     }
 
     function closeReceiptModal() {
       document.getElementById('receiptModal').classList.add('hidden');
     }
 
-    // Paystack Checkout Integration
-    async function handleCheckout(e) {
-      e.preventDefault();
-      if (cart.length === 0) return alert('Your cart is empty!');
+    function renderCart() {
+      const cartItemsList = document.getElementById('cartItemsList');
+      const cartBadge = document.getElementById('cartBadge');
+      const cartTotal = document.getElementById('cartTotal');
 
-      const customer_name = document.getElementById('custName').value;
-      const customer_email = document.getElementById('custEmail').value;
-      const customer_phone = document.getElementById('custPhone').value;
-      const delivery_address = document.getElementById('custAddress').value;
-      const total_amount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      let totalCount = 0;
+      let totalPrice = 0;
 
-      const submitBtn = document.getElementById('submitOrderBtn');
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Opening Paystack...`;
-
-      try {
-        const paystack = new PaystackPop();
-        paystack.newTransaction({
-          key: 'pk_test_c02a550dc6bed9f045decbc98c7af49c3c998296',
-          email: customer_email,
-          amount: total_amount * 100, // Convert Naira to Kobo
-          currency: 'NGN',
-          metadata: {
-            custom_fields: [
-              { display_name: "Customer Name", variable_name: "customer_name", value: customer_name },
-              { display_name: "Phone Number", variable_name: "customer_phone", value: customer_phone }
-            ]
-          },
-          onSuccess: async function(transaction) {
-            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving Paid Order...`;
-            await saveOrderToSupabase({
-              customer_name,
-              customer_phone,
-              delivery_address,
-              total_amount,
-              payment_ref: transaction.reference
-            });
-          },
-          onCancel: function() {
-            alert('Payment window closed.');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = `<span>Pay & Place Order</span> <i class="fa-solid fa-arrow-right"></i>`;
-          }
-        });
-      } catch (err) {
-        console.error(err);
-        alert('Could not initialize payment gateway.');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<span>Pay & Place Order</span> <i class="fa-solid fa-arrow-right"></i>`;
+      if (cart.length === 0) {
+        cartItemsList.innerHTML = `<p class="text-slate-400 text-center py-12 text-sm">Your cart is empty.</p>`;
+        cartBadge.innerText = '0';
+        cartTotal.innerText = '₦0';
+        return;
       }
-    }
 
-    async function saveOrderToSupabase(orderDetails) {
-      const submitBtn = document.getElementById('submitOrderBtn');
+      cartItemsList.innerHTML = cart.map(item => {
+        totalCount += item.quantity;
+        totalPrice += item.price * item.quantity;
 
-      try {
-        const { data: orderData, error: orderErr } = await supabaseClient
-          .from('orders')
-          .insert([{
-            customer_name: orderDetails.customer_name,
-            customer_phone: orderDetails.customer_phone,
-            delivery_address: orderDetails.delivery_address,
-            total_amount: orderDetails.total_amount,
-            status: 'paid'
-          }])
-          .select()
-          .single();
-
-        if (orderErr) throw new Error(orderErr.message || 'Failed to submit order');
-
-        const orderItems = cart.map(item => {
-          const isUuid = typeof item.id === 'string' && item.id.length === 36 && item.id.includes('-');
-          return {
-            order_id: orderData.id,
-            menu_item_id: isUuid ? item.id : null,
-            item_name: item.name,
-            quantity: item.quantity,
-            unit_price: item.price
-          };
-        });
-
-        const { error: itemsErr } = await supabaseClient.from('order_items').insert(orderItems);
-        if (itemsErr) console.warn('Order items insert warning:', itemsErr);
-
-        // Populate and display receipt modal
-        showReceipt({
-          ref: orderDetails.payment_ref,
-          date: new Date().toLocaleString(),
-          name: orderDetails.customer_name,
-          phone: orderDetails.customer_phone,
-          address: orderDetails.delivery_address,
-          items: [...cart],
-          total: orderDetails.total_amount
-        });
-
-        cart = [];
-        saveCart();
-        document.getElementById('checkoutForm').reset();
-        toggleCartDrawer(false);
-
-      } catch (err) {
-        console.error(err);
-        alert('Payment was successful, but saving the order to the database failed: ' + err.message);
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<span>Pay & Place Order</span> <i class="fa-solid fa-arrow-right"></i>`;
-      }
-    }
-
-    function showReceipt(data) {
-      document.getElementById('receiptRef').innerText = data.ref;
-      document.getElementById('receiptDate').innerText = data.date;
-      document.getElementById('receiptName').innerText = data.name;
-      document.getElementById('receiptPhone').innerText = data.phone;
-      document.getElementById('receiptAddress').innerText = data.address;
-      document.getElementById('receiptTotal').innerText = `₦${data.total.toLocaleString()}`;
-
-      const itemsListContainer = document.getElementById('receiptItemsList');
-      itemsListContainer.innerHTML = data.items.map(i => `
-        <div class="p-2.5 flex justify-between items-center">
-          <div>
-            <span class="font-bold text-slate-800 block">${i.name}</span>
-            <span class="text-slate-400 text-[10px]">Qty: ${i.quantity} × ₦${i.price.toLocaleString()}</span>
+        return `
+          <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <div class="flex items-center space-x-3">
+              <img src="${item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'}" alt="${item.name}" class="w-12 h-12 rounded-lg object-cover">
+              <div>
+                <h4 class="font-bold text-slate-900 text-xs">${item.name}</h4>
+                <span class="text-xs text-red-700 font-bold">₦${(item.price * item.quantity).toLocaleString()}</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <div class="flex items-center space-x-1 bg-white p-1 rounded border border-slate-200">
+                <button onclick="updateCartQty('${item.id}', -1)" class="w-5 h-5 flex items-center justify-center bg-slate-100 rounded font-bold text-xs">&minus;</button>
+                <span class="text-xs font-bold px-1">${item.quantity}</span>
+                <button onclick="updateCartQty('${item.id}', 1)" class="w-5 h-5 flex items-center justify-center bg-slate-100 rounded font-bold text-xs">&plus;</button>
+              </div>
+              <button onclick="removeFromCart('${item.id}')" class="text-slate-400 hover:text-red-700 text-xs p-1"><i class="fa-solid fa-trash"></i></button>
+            </div>
           </div>
-          <span class="font-bold text-slate-700">₦${(i.price * i.quantity).toLocaleString()}</span>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
-      document.getElementById('receiptModal').classList.remove('hidden');
+      cartBadge.innerText = totalCount;
+      cartTotal.innerText = `₦${totalPrice.toLocaleString()}`;
+    }
+
+    function updateCartQty(itemId, delta) {
+      const item = cart.find(c => c.id === itemId);
+      if (!item) return;
+      item.quantity += delta;
+      if (item.quantity <= 0) {
+        cart = cart.filter(c => c.id !== itemId);
+      }
+      localStorage.setItem('restaurant_cart', JSON.stringify(cart));
+      renderCart();
+    }
+
+    function removeFromCart(itemId) {
+      cart = cart.filter(c => c.id !== itemId);
+      localStorage.setItem('restaurant_cart', JSON.stringify(cart));
+      renderCart();
+    }
+
+    async function handleCheckout(event) {
+      event.preventDefault();
+      if (cart.length === 0) return;
+
+      const name = document.getElementById('custName').value;
+      const email = document.getElementById('custEmail').value;
+      const phone = document.getElementById('custPhone').value;
+      const address = document.getElementById('custAddress').value;
+
+      const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const reference = 'BR-' + Math.floor(Math.random() * 900000 + 100000);
+
+      const paystack = new PaystackPop();
+      paystack.newTransaction({
+        key: SUPABASE_ANON_KEY,
+        email: email,
+        amount: totalPrice * 100,
+        currency: 'NGN',
+        ref: reference,
+        metadata: {
+          custom_fields: [
+            { display_name: "Customer Name", variable_name: "customer_name", value: name },
+            { display_name: "Phone Number", variable_name: "phone_number", value: phone },
+            { display_name: "Delivery Address", variable_name: "delivery_address", value: address }
+          ]
+        },
+        onSuccess: async function(transaction) {
+          try {
+            await supabaseClient.from('orders').insert([{
+              reference: transaction.reference,
+              customer_name: name,
+              customer_email: email,
+              customer_phone: phone,
+              delivery_address: address,
+              items: cart,
+              total_amount: totalPrice,
+              status: 'paid'
+            }]);
+          } catch(e) {
+            console.warn('Could not save order to database:', e);
+          }
+
+          document.getElementById('receiptRef').innerText = transaction.reference;
+          document.getElementById('receiptDate').innerText = new Date().toLocaleString();
+          document.getElementById('receiptName').innerText = name;
+          document.getElementById('receiptPhone').innerText = phone;
+          document.getElementById('receiptAddress').innerText = address;
+          document.getElementById('receiptTotal').innerText = `₦${totalPrice.toLocaleString()}`;
+
+          document.getElementById('receiptItemsList').innerHTML = cart.map(item => `
+            <div class="flex justify-between p-2.5">
+              <span>${item.name} (x${item.quantity})</span>
+              <span class="font-bold">₦${(item.price * item.quantity).toLocaleString()}</span>
+            </div>
+          `).join('');
+
+          toggleCartDrawer(false);
+          document.getElementById('receiptModal').classList.remove('hidden');
+
+          cart = [];
+          localStorage.removeItem('restaurant_cart');
+          renderCart();
+          document.getElementById('checkoutForm').reset();
+        },
+        onCancel: function() {
+          alert('Payment was cancelled.');
+        }
+      });
     }
   </script>
 </body>
