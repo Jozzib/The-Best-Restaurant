@@ -33,7 +33,11 @@
       <nav class="flex space-x-2 md:space-x-0 md:space-y-1 md:flex-col">
         <button onclick="switchTab('orders')" id="tab-orders-btn" class="flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg bg-red-600 text-white font-semibold text-xs md:text-sm transition">
           <i class="fa-solid fa-list-check w-4"></i>
-          <span>Live Orders</span>
+          <span>Live & Active Orders</span>
+        </button>
+        <button onclick="switchTab('history')" id="tab-history-btn" class="flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition">
+          <i class="fa-solid fa-folder-open w-4"></i>
+          <span>Delivered History</span>
         </button>
         <button onclick="switchTab('menu')" id="tab-menu-btn" class="flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition">
           <i class="fa-solid fa-utensils w-4"></i>
@@ -59,7 +63,7 @@
     <!-- Top Header -->
     <header class="bg-white border-b border-slate-200 px-4 md:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sticky top-0 z-30">
       <div class="flex items-center space-x-3">
-        <h2 id="pageTitle" class="text-lg md:text-xl font-bold text-slate-900">Live Orders Dashboard</h2>
+        <h2 id="pageTitle" class="text-lg md:text-xl font-bold text-slate-900">Live & Active Orders</h2>
       </div>
       
       <!-- Action Controls -->
@@ -142,6 +146,33 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- DELIVERED HISTORY TAB -->
+      <div id="tab-history" class="hidden w-full space-y-6">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+            <i class="fa-solid fa-folder-closed text-red-700"></i> Delivered Orders Archive
+          </h3>
+          <span class="text-xs text-slate-400">Completed & successfully delivered orders</span>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto w-full">
+          <table class="w-full min-w-[700px] text-left border-collapse">
+            <thead class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
+              <tr>
+                <th class="p-3 md:p-4">Customer</th>
+                <th class="p-3 md:p-4">Items Ordered</th>
+                <th class="p-3 md:p-4">Delivery Address</th>
+                <th class="p-3 md:p-4">Total Amount</th>
+                <th class="p-3 md:p-4">Status</th>
+                <th class="p-3 md:p-4">Time Completed</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody" class="divide-y divide-slate-100 text-sm">
+              <tr><td colspan="6" class="p-8 text-center text-slate-400">No history records yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- MENU MANAGER TAB -->
@@ -312,17 +343,28 @@
     });
 
     function switchTab(tab) {
+      // Hide all tabs first
+      document.getElementById('tab-orders').classList.add('hidden');
+      document.getElementById('tab-history').classList.add('hidden');
+      document.getElementById('tab-menu').classList.add('hidden');
+
+      // Reset button styles
+      document.getElementById('tab-orders-btn').className = 'flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition';
+      document.getElementById('tab-history-btn').className = 'flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition';
+      document.getElementById('tab-menu-btn').className = 'flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition';
+
+      // Activate chosen tab
       if (tab === 'orders') {
         document.getElementById('tab-orders').classList.remove('hidden');
-        document.getElementById('tab-menu').classList.add('hidden');
         document.getElementById('tab-orders-btn').className = 'flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg bg-red-600 text-white font-semibold text-xs md:text-sm transition';
-        document.getElementById('tab-menu-btn').className = 'flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition';
-        document.getElementById('pageTitle').innerText = 'Live Orders Dashboard';
+        document.getElementById('pageTitle').innerText = 'Live & Active Orders';
+      } else if (tab === 'history') {
+        document.getElementById('tab-history').classList.remove('hidden');
+        document.getElementById('tab-history-btn').className = 'flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg bg-red-600 text-white font-semibold text-xs md:text-sm transition';
+        document.getElementById('pageTitle').innerText = 'Delivered Orders History';
       } else {
-        document.getElementById('tab-orders').classList.add('hidden');
         document.getElementById('tab-menu').classList.remove('hidden');
         document.getElementById('tab-menu-btn').className = 'flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg bg-red-600 text-white font-semibold text-xs md:text-sm transition';
-        document.getElementById('tab-orders-btn').className = 'flex items-center space-x-2 md:space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs md:text-sm transition';
         document.getElementById('pageTitle').innerText = 'Menu Management';
       }
     }
@@ -368,31 +410,36 @@
 
       allOrdersStore = orders || [];
 
+      // Separate orders: Active orders vs Delivered history folder
+      const activeOrders = allOrdersStore.filter(o => o.status !== 'delivered');
+      const deliveredOrders = allOrdersStore.filter(o => o.status === 'delivered');
+
       // Calculate Daily Revenue (Today's Date Only)
       const todayString = new Date().toISOString().split('T')[0];
       const todayOrders = allOrdersStore.filter(o => o.created_at && o.created_at.startsWith(todayString));
       const dailyRevenue = todayOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
 
-      const pendingCount = allOrdersStore.filter(o => o.status === 'pending' || o.status === 'preparing').length;
+      const pendingCount = activeOrders.filter(o => o.status === 'pending' || o.status === 'preparing').length;
       const completedTodayCount = todayOrders.filter(o => o.status === 'delivered').length;
 
       document.getElementById('statDailyRevenue').innerText = `₦${dailyRevenue.toLocaleString()}`;
       document.getElementById('statPending').innerText = pendingCount;
       document.getElementById('statCompleted').innerText = completedTodayCount;
 
-      const hasUnattendedPending = allOrdersStore.some(o => o.status === 'pending');
+      const hasUnattendedPending = activeOrders.some(o => o.status === 'pending');
       if (!hasUnattendedPending) {
         stopAlarm();
       }
 
-      renderLiveOrdersTable(allOrdersStore);
+      renderLiveOrdersTable(activeOrders);
+      renderHistoryTable(deliveredOrders);
       renderMonthlySalesArchives(allOrdersStore);
     }
 
     function renderLiveOrdersTable(orders) {
       const tbody = document.getElementById('ordersTableBody');
       if (orders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No orders received yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">No active orders found.</td></tr>`;
         return;
       }
 
@@ -420,7 +467,6 @@
             <td class="p-3 md:p-4 align-top font-black text-red-700">₦${Number(o.total_amount || 0).toLocaleString()}</td>
             <td class="p-3 md:p-4 align-top">
               <span class="px-2.5 py-1 rounded-full text-xs font-bold ${
-                o.status === 'delivered' ? 'bg-emerald-100 text-emerald-800' :
                 o.status === 'preparing' ? 'bg-amber-100 text-amber-800' :
                 o.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-800' :
                 'bg-red-100 text-red-800 animate-pulse'
@@ -435,6 +481,42 @@
                 <option value="delivered" ${o.status === 'delivered' ? 'selected' : ''}>Delivered</option>
               </select>
             </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderHistoryTable(orders) {
+      const tbody = document.getElementById('historyTableBody');
+      if (orders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">No delivered orders found in history.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = orders.map(o => {
+        const itemsListHtml = o.order_items && o.order_items.length > 0
+          ? o.order_items.map(i => `
+              <div class="text-xs text-slate-700 font-medium">
+                <span class="font-bold text-red-700">${i.quantity}x</span> ${escapeHtml(i.item_name || 'Meal')}
+              </div>
+            `).join('')
+          : '<span class="text-xs text-slate-400">No item details</span>';
+
+        return `
+          <tr class="hover:bg-slate-50 border-b border-slate-100 transition">
+            <td class="p-3 md:p-4 align-top">
+              <div class="font-bold text-slate-900">${escapeHtml(o.customer_name)}</div>
+              <div class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-phone mr-1"></i>${escapeHtml(o.customer_phone)}</div>
+            </td>
+            <td class="p-3 md:p-4 align-top bg-slate-50 rounded-lg">
+              <div class="space-y-1">${itemsListHtml}</div>
+            </td>
+            <td class="p-3 md:p-4 align-top max-w-xs text-slate-600 text-xs">${escapeHtml(o.delivery_address)}</td>
+            <td class="p-3 md:p-4 align-top font-black text-slate-900">₦${Number(o.total_amount || 0).toLocaleString()}</td>
+            <td class="p-3 md:p-4 align-top">
+              <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">DELIVERED</span>
+            </td>
+            <td class="p-3 md:p-4 align-top text-xs text-slate-500">${new Date(o.created_at).toLocaleString([], {dateStyle: 'short', timeStyle: 'short'})}</td>
           </tr>
         `;
       }).join('');
@@ -559,7 +641,7 @@
         return;
       }
 
-      grid.innerHTML = items.map(item => `
+      grid.innerHTML = items.linkHtml || items.map(item => `
         <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col justify-between">
           <img src="${escapeHtml(item.image_url) || 'https://via.placeholder.com/300'}" class="w-full h-36 object-cover" alt="Meal Image">
           <div class="p-4 flex-grow">
