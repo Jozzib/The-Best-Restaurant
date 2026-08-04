@@ -246,7 +246,7 @@
     </div>
   </div>
 
-  <!-- Cart Slide-over Drawer (Hidden by default) -->
+  <!-- Cart Slide-over Drawer -->
   <div id="cartDrawer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex justify-end">
     <div class="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-200">
       
@@ -497,99 +497,105 @@
       if (!item) return;
 
       const qty = itemQuantities[itemId] || 1;
-      const existing = cart.find(ci => ci.id === itemId);
 
+      const existing = cart.find(c => c.id === item.id);
       if (existing) {
         existing.quantity += qty;
       } else {
-        cart.push({ ...item, quantity: qty });
+        cart.push({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: qty,
+          image_url: item.image_url
+        });
       }
 
-      itemQuantities[itemId] = 1;
-      const qtyElem = document.getElementById(`qty-${itemId}`);
-      if (qtyElem) qtyElem.innerText = 1;
-
-      saveAndRenderCart();
+      saveCart();
+      renderCart();
       toggleCartDrawer(true);
     }
 
-    function saveAndRenderCart() {
-      localStorage.setItem('restaurant_cart', JSON.stringify(cart));
+    function updateCartItemQty(itemId, change) {
+      const item = cart.find(c => c.id === itemId);
+      if (!item) return;
+
+      item.quantity += change;
+      if (item.quantity <= 0) {
+        cart = cart.filter(c => c.id !== itemId);
+      }
+
+      saveCart();
       renderCart();
+    }
+
+    function removeFromCart(itemId) {
+      cart = cart.filter(c => c.id !== itemId);
+      saveCart();
+      renderCart();
+    }
+
+    function saveCart() {
+      localStorage.setItem('restaurant_cart', JSON.stringify(cart));
     }
 
     function renderCart() {
       const badge = document.getElementById('cartBadge');
       const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-      if (badge) badge.innerText = totalItems;
+      badge.innerText = totalItems;
 
-      const container = document.getElementById('cartItemsList');
-      const totalElem = document.getElementById('cartTotal');
-      const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      if (totalElem) totalElem.innerText = `₦${totalPrice.toLocaleString()}`;
+      const cartItemsList = document.getElementById('cartItemsList');
+      const cartTotal = document.getElementById('cartTotal');
 
       if (cart.length === 0) {
-        container.innerHTML = `<p class="text-slate-400 text-center py-12 text-sm">Your cart is empty.</p>`;
+        cartItemsList.innerHTML = `<p class="text-slate-400 text-center py-12 text-sm">Your cart is empty.</p>`;
+        cartTotal.innerText = '₦0';
         return;
       }
 
-      container.innerHTML = cart.map(item => `
-        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-          <div class="flex items-center space-x-3">
-            <img src="${item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80'}" class="w-12 h-12 object-cover rounded-lg" />
-            <div>
-              <h4 class="font-bold text-slate-900 text-xs">${item.name}</h4>
-              <span class="text-xs text-red-700 font-bold">₦${Number(item.price).toLocaleString()}</span>
+      let grandTotal = 0;
+
+      cartItemsList.innerHTML = cart.map(item => {
+        const itemTotal = item.price * item.quantity;
+        grandTotal += itemTotal;
+
+        return `
+          <div class="flex items-center justify-between bg-slate-50 border border-slate-200/80 p-3 rounded-xl gap-3">
+            <img src="${item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'}" alt="${item.name}" class="w-12 h-12 rounded-lg object-cover">
+            <div class="flex-1 min-w-0">
+              <h4 class="font-bold text-slate-900 text-xs truncate">${item.name}</h4>
+              <span class="text-red-700 font-black text-xs">₦${Number(itemTotal).toLocaleString()}</span>
             </div>
-          </div>
-          <div class="flex items-center space-x-2">
-            <div class="flex items-center space-x-1 bg-white border border-slate-200 rounded-lg p-1">
-              <button onclick="updateCartQty('${item.id}', -1)" class="w-5 h-5 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100 rounded text-xs">&minus;</button>
+            <div class="flex items-center space-x-1.5 bg-white border border-slate-200 p-1 rounded-lg">
+              <button onclick="updateCartItemQty('${item.id}', -1)" class="w-5 h-5 flex items-center justify-center bg-slate-100 rounded text-slate-700 font-bold text-xs">&minus;</button>
               <span class="text-xs font-bold px-1">${item.quantity}</span>
-              <button onclick="updateCartQty('${item.id}', 1)" class="w-5 h-5 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100 rounded text-xs">&plus;</button>
+              <button onclick="updateCartItemQty('${item.id}', 1)" class="w-5 h-5 flex items-center justify-center bg-slate-100 rounded text-slate-700 font-bold text-xs">&plus;</button>
             </div>
-            <button onclick="removeFromCart('${item.id}')" class="text-slate-400 hover:text-red-700 text-xs px-1"><i class="fa-solid fa-trash"></i></button>
+            <button onclick="removeFromCart('${item.id}')" class="text-slate-400 hover:text-red-600 text-xs px-1"><i class="fa-solid fa-trash"></i></button>
           </div>
-        </div>
-      `).join('');
-    }
+        `;
+      }).join('');
 
-    function updateCartQty(itemId, delta) {
-      const item = cart.find(ci => ci.id === itemId);
-      if (!item) return;
-      item.quantity += delta;
-      if (item.quantity <= 0) {
-        cart = cart.filter(ci => ci.id !== itemId);
-      }
-      saveAndRenderCart();
-    }
-
-    function removeFromCart(itemId) {
-      cart = cart.filter(ci => ci.id !== itemId);
-      saveAndRenderCart();
+      cartTotal.innerText = `₦${Number(grandTotal).toLocaleString()}`;
     }
 
     function toggleCartDrawer(open) {
       const drawer = document.getElementById('cartDrawer');
-      if (drawer) {
-        drawer.classList.toggle('hidden', !open);
-      }
+      drawer.classList.toggle('hidden', !open);
     }
 
     function toggleContactModal(open) {
       const modal = document.getElementById('contactModal');
-      if (modal) {
-        modal.classList.toggle('hidden', !open);
-      }
+      modal.classList.toggle('hidden', !open);
     }
 
     function closeReceiptModal() {
-      const modal = document.getElementById('receiptModal');
-      if (modal) modal.classList.add('hidden');
+      document.getElementById('receiptModal').classList.add('hidden');
     }
 
     async function handleCheckout(event) {
       event.preventDefault();
+
       if (cart.length === 0) {
         alert('Your cart is empty!');
         return;
@@ -600,64 +606,77 @@
       const phone = document.getElementById('custPhone').value.trim();
       const address = document.getElementById('custAddress').value.trim();
 
-      const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const amountInKobo = totalAmount * 100;
 
-      const submitBtn = document.getElementById('submitOrderBtn');
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Initializing Payment...`;
+      const transactionRef = 'TBR_' + Math.random().toString(36).substring(2, 9).toUpperCase();
 
-      try {
-        const orderRef = 'BR-' + Math.floor(100000 + Math.random() * 900000);
-        
-        const { error: orderErr } = await supabaseClient.from('orders').insert([{
-          reference: orderRef,
-          customer_name: name,
-          customer_email: email,
-          customer_phone: phone,
-          delivery_address: address,
-          total_amount: totalPrice,
-          items: cart,
-          status: 'paid'
-        }]);
+      const popup = new PaystackPop();
+      popup.newTransaction({
+        key: 'pk_test_c02a550dc6bed9f045decbc98c7af49c3c998296',
+        email: email,
+        amount: amountInKobo,
+        currency: 'NGN',
+        ref: transactionRef,
+        metadata: {
+          custom_fields: [
+            { display_name: "Customer Name", variable_name: "customer_name", value: name },
+            { display_name: "Phone Number", variable_name: "phone_number", value: phone },
+            { display_name: "Delivery Address", variable_name: "delivery_address", value: address }
+          ]
+        },
+        onSuccess: async function(response) {
+          
+          const orderPayload = {
+            reference: response.reference || transactionRef,
+            customer_name: name,
+            customer_email: email,
+            customer_phone: phone,
+            delivery_address: address,
+            items: cart,
+            total_amount: totalAmount,
+            status: 'pending',
+            created_at: new Date().toISOString()
+          };
 
-        if (orderErr) console.warn('Could not save order to Supabase:', orderErr.message);
-
-        let handler = PaystackPop.setup({
-          key: 'pk_live_YOUR_PAYSTACK_KEY',
-          email: email,
-          amount: totalPrice * 100,
-          currency: 'NGN',
-          ref: orderRef,
-          callback: function(response) {
-            lastCompletedOrder = {
-              reference: response.reference,
-              date: new Date().toLocaleString(),
-              name, email, phone, address,
-              items: [...cart],
-              total: totalPrice
-            };
+          // Save order to Supabase and handle any diagnostics
+          try {
+            const { data, error: dbError } = await supabaseClient.from('orders').insert([orderPayload]).select();
             
-            cart = [];
-            saveAndRenderCart();
-            toggleCartDrawer(false);
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = `<span>Pay & Place Order</span><i class="fa-solid fa-arrow-right"></i>`;
-
-            showReceipt(lastCompletedOrder);
-          },
-          onClose: function() {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = `<span>Pay & Place Order</span><i class="fa-solid fa-arrow-right"></i>`;
+            if (dbError) {
+              console.error('Database Save Failed:', dbError);
+              alert('Payment Successful, but saving to Admin Database failed: ' + dbError.message);
+            } else {
+              console.log('Order successfully written to database:', data);
+            }
+          } catch (err) {
+            console.error('Unexpected error during insert:', err);
+            alert('Unexpected connection error while saving order to database.');
           }
-        });
-        handler.openIframe();
 
-      } catch (err) {
-        console.error('Checkout error:', err);
-        alert('An error occurred during checkout. Please try again.');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<span>Pay & Place Order</span><i class="fa-solid fa-arrow-right"></i>`;
-      }
+          lastCompletedOrder = {
+            reference: orderPayload.reference,
+            date: new Date().toLocaleString(),
+            name: name,
+            phone: phone,
+            address: address,
+            items: [...cart],
+            total: totalAmount
+          };
+
+          // Clear cart
+          cart = [];
+          saveCart();
+          renderCart();
+          toggleCartDrawer(false);
+
+          // Show digital receipt modal
+          showReceipt(lastCompletedOrder);
+        },
+        onCancel: function() {
+          console.log('Payment checkout cancelled.');
+        }
+      });
     }
 
     function showReceipt(order) {
@@ -666,16 +685,16 @@
       document.getElementById('receiptName').innerText = order.name;
       document.getElementById('receiptPhone').innerText = order.phone;
       document.getElementById('receiptAddress').innerText = order.address;
-      document.getElementById('receiptTotal').innerText = `₦${order.total.toLocaleString()}`;
+      document.getElementById('receiptTotal').innerText = `₦${Number(order.total).toLocaleString()}`;
 
       const itemsList = document.getElementById('receiptItemsList');
-      itemsList.innerHTML = order.items.map(item => `
+      itemsList.innerHTML = order.items.map(i => `
         <div class="p-2.5 flex justify-between items-center">
           <div>
-            <span class="font-bold text-slate-800 block">${item.name}</span>
-            <span class="text-slate-400">Qty: ${item.quantity} × ₦${item.price.toLocaleString()}</span>
+            <span class="font-bold text-slate-800 block">${i.name}</span>
+            <span class="text-slate-400 text-[11px]">Qty: ${i.quantity} x ₦${Number(i.price).toLocaleString()}</span>
           </div>
-          <span class="font-bold text-slate-900">₦${(item.price * item.quantity).toLocaleString()}</span>
+          <span class="font-bold text-slate-700">₦${Number(i.price * i.quantity).toLocaleString()}</span>
         </div>
       `).join('');
 
