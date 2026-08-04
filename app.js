@@ -319,12 +319,18 @@ checkoutForm.addEventListener('submit', async (e) => {
   // 1. Insert Main Order into Supabase
   const { data: order, error: orderError } = await supabaseClient
     .from('orders')
-    .insert([{ 
-      customer_name: name, 
-      customer_phone: phone, 
-      delivery_address: address, 
-      total_amount: totalAmount 
-    }])
+    // 1. Insert Main Order into Supabase
+const { data: order, error: orderError } = await supabaseClient
+  .from('orders')
+  .insert([{
+      customer_name: name,
+      customer_phone: phone,
+      delivery_address: address,
+      total_amount: totalAmount,
+      items: cart // <--- Add this line here
+  }])
+  .select()
+  .single();
     .select()
     .single();
 
