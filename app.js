@@ -317,23 +317,17 @@ checkoutForm.addEventListener('submit', async (e) => {
   }
 
   // 1. Insert Main Order into Supabase
-  const { data: order, error: orderError } = await supabaseClient
-    .from('orders')
-    // 1. Insert Main Order into Supabase
 const { data: order, error: orderError } = await supabaseClient
   .from('orders')
-  .insert([{
+  .insert({
       customer_name: name,
       customer_phone: phone,
       delivery_address: address,
       total_amount: totalAmount,
-      items: cart // <--- Add this line here
-  }])
+      items: cart
+  })
   .select()
   .single();
-    .select()
-    .single();
-
   if (orderError) {
     alert('Failed to place order. Please try again.');
     console.error('Order Error:', orderError);
