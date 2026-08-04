@@ -24,14 +24,14 @@ async function fetchOrders() {
   const { data, error } = await supabaseClient
     .from('orders')
     .select(`
-      *,
-      order_items (
-        id,
-        quantity,
-        unit_price,
-        menu_items ( name )
-      )
-    `)
+            *,
+            order_items (
+              id,
+              quantity,
+              unit_price,
+              menu_items ( name )
+            )
+          `)
     .order('created_at', { ascending: false });
 
   if (error) {
