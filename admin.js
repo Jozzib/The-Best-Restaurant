@@ -96,10 +96,10 @@ function renderOrders() {
     const isPending = order.status === 'pending';
     const dateFormatted = new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    const itemsList = order.order_items ? order.order_items.map(item => `
+    const itemsList = order.items && order.items.length > 0 ? order.items.map(item => `
       <div class="text-xs text-gray-700 flex justify-between py-1 border-b border-gray-50">
-        <span>${item.quantity}x ${item.menu_items ? item.menu_items.name : 'Custom Item'}</span>
-        <span class="font-bold">₦${(item.unit_price * item.quantity).toLocaleString()}</span>
+        <span>${item.quantity}x ${item.name || 'Meal'}</span>
+        <span class="font-bold">₦${(Number(item.price) * Number(item.quantity)).toLocaleString()}</span>
       </div>
     `).join('') : '<p class="text-xs text-gray-400">No items listed</p>';
 
